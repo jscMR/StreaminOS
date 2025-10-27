@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: StreaminOS
+  description: Base role for StreaminOS system installation with Sway
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Archlinux
+      versions:
+        - all
+  galaxy_tags:
+    - streaming
+    - sway
+    - wayland
+    - archlinux
+
+dependencies: []

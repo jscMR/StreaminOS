@@ -1,0 +1,81 @@
+---
+- name: Update package database
+  pacman:
+    update_cache: yes
+  tags: base
+
+- name: Install base system packages
+  pacman:
+    name: "{{ base_packages }}"
+    state: present
+  tags: base
+
+- name: Install Sway and related packages
+  pacman:
+    name: "{{ sway_packages }}"
+    state: present
+  tags:
+    - base
+    - sway
+
+- name: Enable and start dhcpcd
+  systemd:
+    name: dhcpcd
+    enabled: yes
+    state: started
+  when: enable_dhcpcd
+  tags: base
+
+- name: Create Sway configuration directory
+  file:
+    path: "{{ streamin_home }}/.config/sway"
+    state: directory
+    owner: "{{ streamin_user }}"
+    mode: '0755'
+  tags: sway
+
+- name: Create basic Sway configuration
+  copy:
+    dest: "{{ streamin_home }}/.config/sway/config"
+    content: |
+      # StreaminOS Sway Config
+      # Minimalist configuration for streaming server
+
+      # Mod key (Mod4 = Super/Windows key)
+      set $mod Mod4
+
+      # Terminal
+      set $term foot
+
+      # Basic keybindings
+      bindsym $mod+Return exec $term
+      bindsym $mod+Shift+q kill
+      bindsym $mod+Shift+c reload
+      bindsym $mod+Shift+e exit
+
+      # Outputs (for virtual displays)
+      output * bg #000000 solid_color
+
+      # No gaps, no borders (headless server)
+      default_border none
+      default_floating_border none
+      gaps inner 0
+      gaps outer 0
+
+      # Idle configuration (disabled for streaming)
+      # exec swayidle -w
+    owner: "{{ streamin_user }}"
+    mode: '0644'
+    force: no
+  tags: sway
+
+- name: Verify Sway installation
+  command: sway --version
+  register: sway_version
+  changed_when: false
+  tags: sway
+
+- name: Display installed Sway version
+  debug:
+    msg: "Sway installed: {{ sway_version.stdout }}"
+  tags: sway

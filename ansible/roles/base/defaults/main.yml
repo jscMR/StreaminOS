@@ -1,0 +1,26 @@
+---
+# Default variables for base role
+
+base_packages:
+  - base
+  - base-devel
+  - git
+  - dhcpcd
+  - vim
+  - htop
+  - tmux
+
+sway_packages:
+  - sway
+  - wayland
+  - xorg-xwayland
+  - swaylock
+  - swayidle
+  - waybar
+  - foot  # lightweight terminal for Wayland
+  - grim  # screenshots
+  - slurp # region selector
+  - wl-clipboard
+
+enable_dhcpcd: true
+enable_sway_autostart: false

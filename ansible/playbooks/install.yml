@@ -1,0 +1,82 @@
+---
+- name: Install and configure StreaminOS
+  hosts: streamin_servers
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Display system information
+      debug:
+        msg: |
+          Installing StreaminOS on:
+          - Host: {{ ansible_hostname }}
+          - OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          - Kernel: {{ ansible_kernel }}
+          - User: {{ streamin_user }}
+      tags: always
+
+    - name: Verify we are on Arch Linux
+      fail:
+        msg: "This playbook only works on Arch Linux"
+      when: ansible_distribution != "Archlinux"
+      tags: always
+
+  roles:
+    - role: base
+      tags:
+        - base
+        - system
+
+    # The following roles will be implemented progressively
+    # - role: sunshine
+    #   tags:
+    #     - sunshine
+    #     - streaming
+    #
+    # - role: evdi
+    #   tags:
+    #     - evdi
+    #     - display
+    #
+    # - role: steam
+    #   tags:
+    #     - steam
+    #     - games
+    #
+    # - role: steam-monitor
+    #   tags:
+    #     - steam-monitor
+    #     - services
+    #
+    # - role: amdgpu
+    #   tags:
+    #     - amdgpu
+    #     - gpu
+    #
+    # - role: dashboard
+    #   tags:
+    #     - dashboard
+    #     - ui
+
+  post_tasks:
+    - name: Display installation summary
+      debug:
+        msg: |
+          ====================================
+          StreaminOS - Installation completed
+          ====================================
+
+          Base system installed with:
+          - Sway (Wayland compositor)
+          - Base system packages
+
+          Next steps:
+          1. Review Sway configuration in ~/.config/sway/config
+          2. Configure dhcpcd if needed
+          3. Run additional roles as needed
+
+          To install additional components:
+          - Sunshine: ansible-playbook install.yml --tags sunshine
+          - Steam: ansible-playbook install.yml --tags steam
+          - Virtual Display: ansible-playbook install.yml --tags evdi
+      tags: always

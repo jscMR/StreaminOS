@@ -1,0 +1,44 @@
+---
+# Global variables for StreaminOS
+
+# Base system
+arch_packages:
+  - base
+  - base-devel
+  - git
+  - dhcpcd
+  - sway
+  - wayland
+  - xorg-xwayland
+  - polkit
+  - mesa
+  - vulkan-radeon
+  - lib32-vulkan-radeon
+
+# AUR helper
+aur_helper: yay
+
+# GPU
+gpu_vendor: amd
+gpu_model: rx7900gre
+
+# Sunshine
+sunshine_port: 47989
+sunshine_config_dir: "{{ streamin_home }}/.config/sunshine"
+
+# Steam
+steam_library_paths:
+  - "{{ streamin_home }}/.local/share/Steam/steamapps"
+
+# Virtual Display
+evdi_displays_max: 4
+virtual_display_resolution: "1920x1080"
+
+# Dashboard
+dashboard_port: 8080
+dashboard_install_dir: /opt/streamin-dashboard
+
+# Services
+services_dir: /opt/streamin-services
+systemd_user_dir: "{{ streamin_home }}/.config/systemd/user"
+systemd_system_dir: /etc/systemd/system
