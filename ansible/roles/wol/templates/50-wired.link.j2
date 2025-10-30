@@ -1,0 +1,16 @@
+# systemd.link configuration for Wake-on-LAN
+# Managed by Ansible - StreaminOS wol role
+# This file enables persistent Wake-on-LAN for the primary Ethernet interface
+
+[Match]
+# Match the primary Ethernet interface by name
+OriginalName={{ wol_interface }}
+
+[Link]
+# Preserve default systemd-networkd behavior for interface naming
+NamePolicy=kernel database onboard slot path
+MACAddressPolicy=persistent
+
+# Enable Wake-on-LAN magic packet support
+# This allows the system to be powered on remotely via magic packets
+WakeOnLan=magic

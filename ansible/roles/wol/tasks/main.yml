@@ -1,0 +1,175 @@
+---
+# Tasks for Wake-on-LAN (WoL) configuration
+
+- name: Install WoL packages
+  pacman:
+      name: "{{ wol_packages }}"
+      state: present
+  become: yes
+  tags:
+      - wol
+      - network
+      - packages
+
+- name: Get interface MAC address
+  shell: "ip link show {{ wol_interface }} | grep -Po 'link/ether \\K[0-9a-f:]+'"
+  register: wol_mac_address
+  changed_when: false
+  failed_when: wol_mac_address.rc != 0
+  tags:
+      - wol
+      - network
+
+- name: Display detected MAC address
+  debug:
+      msg: "Detected MAC address for {{ wol_interface }}: {{ wol_mac_address.stdout }}"
+  tags:
+      - wol
+      - network
+
+- name: Check current WoL status
+  shell: "ethtool {{ wol_interface }} | grep -i 'wake-on' | awk '{print $2}'"
+  register: wol_current_status
+  changed_when: false
+  failed_when: false
+  become: yes
+  tags:
+      - wol
+      - network
+
+- name: Display current WoL status
+  debug:
+      msg: "Current Wake-on status for {{ wol_interface }}: {{ wol_current_status.stdout | default('unknown') }}"
+  tags:
+      - wol
+      - network
+
+- name: Check if hardware supports WoL
+  shell: "ethtool {{ wol_interface }} | grep -i 'supports wake-on' | grep -q 'g' && echo 'supported' || echo 'not_supported'"
+  register: wol_hardware_support
+  changed_when: false
+  failed_when: false
+  become: yes
+  when: wol_verify_support
+  tags:
+      - wol
+      - network
+
+- name: Warn if WoL is not supported by hardware
+  debug:
+      msg: "WARNING: {{ wol_interface }} may not support Wake-on-LAN magic packets. Check BIOS/UEFI settings."
+  when:
+      - wol_verify_support
+      - wol_hardware_support.stdout == 'not_supported'
+  tags:
+      - wol
+      - network
+
+- name: Ensure systemd network directory exists
+  file:
+      path: /etc/systemd/network
+      state: directory
+      mode: "0755"
+  become: yes
+  tags:
+      - wol
+      - network
+
+- name: Create systemd.link file for persistent WoL
+  template:
+      src: 50-wired.link.j2
+      dest: "{{ wol_link_file }}"
+      owner: root
+      group: root
+      mode: "0644"
+  become: yes
+  notify: reload systemd-networkd
+  when: wol_enable
+  tags:
+      - wol
+      - network
+
+- name: Remove systemd.link file if WoL is disabled
+  file:
+      path: "{{ wol_link_file }}"
+      state: absent
+  become: yes
+  notify: reload systemd-networkd
+  when: not wol_enable
+  tags:
+      - wol
+      - network
+
+- name: Enable WoL immediately (without reboot)
+  shell: "ethtool -s {{ wol_interface }} wol g"
+  become: yes
+  when: wol_enable
+  changed_when: true
+  tags:
+      - wol
+      - network
+
+- name: Verify WoL configuration after reload
+  shell: "ethtool {{ wol_interface }} | grep -i 'wake-on' | awk '{print $2}'"
+  register: wol_final_status
+  changed_when: false
+  failed_when: false
+  become: yes
+  tags:
+      - wol
+      - network
+
+- name: Display Wake-on-LAN setup information
+  debug:
+      msg: |
+          ====================================
+          Wake-on-LAN Configuration Complete
+          ====================================
+
+          Interface: {{ wol_interface }}
+          MAC Address: {{ wol_mac_address.stdout }}
+          Wake-on Status: {{ wol_final_status.stdout | default(wol_current_status.stdout) | default('pending reload') }}
+          Hardware Support: {{ wol_hardware_support.stdout | default('not checked') }}
+
+          Configuration:
+          - systemd.link: {{ wol_link_file }}
+          - WoL enabled: {{ wol_enable }}
+
+          IMPORTANT - BIOS/UEFI Requirements:
+          ────────────────────────────────────────
+          You MUST enable these settings in your BIOS/UEFI:
+          1. Enable "Wake on LAN" or "PCI Power Up"
+          2. Disable "ErP Mode" (if present)
+          3. Some boards only support WoL from sleep, not powered-off
+
+          Without these BIOS settings, WoL will NOT work!
+
+          Sending Magic Packets:
+          ────────────────────────────────────────
+          From local network:
+            wol {{ wol_mac_address.stdout }}
+
+          From internet (requires router port forwarding UDP 9):
+            wol -p 9 -i YOUR_PUBLIC_IP {{ wol_mac_address.stdout }}
+
+          Verification:
+          ────────────────────────────────────────
+          Check WoL status:
+            sudo ethtool {{ wol_interface }} | grep Wake-on
+
+          Expected output: "Wake-on: g" (magic packet enabled)
+
+          Test from another computer:
+          1. Power off this server
+          2. Run: wol {{ wol_mac_address.stdout }}
+          3. Server should power on automatically
+
+          Troubleshooting:
+          ────────────────────────────────────────
+          - If WoL doesn't work, verify BIOS settings first
+          - Check network card supports WoL: ethtool {{ wol_interface }} | grep Supports
+          - Ensure router/switch supports WoL packets
+          - Some cards require drivers with special parameters (e.g., r8168 s5wol=1)
+  tags:
+      - wol
+      - network

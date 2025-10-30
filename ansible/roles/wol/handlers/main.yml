@@ -1,0 +1,10 @@
+---
+# Handlers for Wake-on-LAN role
+
+- name: reload systemd-networkd
+  systemd:
+    name: systemd-networkd
+    state: reloaded
+  become: yes
+  # Note: We reload systemd-networkd to apply the new .link file
+  # This doesn't interrupt existing connections with dhcpcd

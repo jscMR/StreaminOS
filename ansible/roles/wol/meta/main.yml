@@ -1,0 +1,25 @@
+---
+# Meta information for Wake-on-LAN role
+
+galaxy_info:
+  author: StreaminOS
+  description: Configure Wake-on-LAN for remote power-on capability
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: ArchLinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - networking
+    - wol
+    - wake-on-lan
+    - power-management
+    - gaming
+    - streaming
+
+dependencies: []
+# This role has no dependencies on other roles
+# It works independently and is compatible with any network manager

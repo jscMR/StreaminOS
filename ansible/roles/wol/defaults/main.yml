@@ -1,0 +1,20 @@
+---
+# Default variables for Wake-on-LAN role
+
+# Wake-on-LAN configuration
+wol_enable: true                    # Enable or disable WoL configuration
+wol_interface: "eno1"               # Primary Ethernet interface for WoL
+wol_install_client_tools: true     # Install 'wol' CLI tool for sending magic packets
+
+# systemd.link configuration
+wol_link_file: "/etc/systemd/network/50-wired.link"
+wol_link_priority: "50"            # Must be < 99 to override default
+
+# Package dependencies
+wol_packages:
+    - ethtool                       # Required for WoL verification and diagnostics
+    - wol                           # Optional: CLI tool to send magic packets
+
+# WoL verification
+wol_verify_support: true           # Check hardware support for WoL
+wol_required_value: "g"            # Magic packet support (required for WoL)
