@@ -1,0 +1,135 @@
+---
+- name: Clean up steam-monitor from StreaminOS
+  hosts: streamin_servers
+  become: yes
+  gather_facts: no
+
+  vars:
+    streamin_user: streaminos
+    streamin_uid: 1100
+
+  tasks:
+    - name: Stop steam-monitor service
+      systemd:
+        name: steam-monitor.service
+        state: stopped
+        scope: user
+      become_user: "{{ streamin_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+      failed_when: false
+      tags:
+        - cleanup
+        - services
+
+    - name: Disable steam-monitor service
+      systemd:
+        name: steam-monitor.service
+        enabled: no
+        scope: user
+      become_user: "{{ streamin_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+      failed_when: false
+      tags:
+        - cleanup
+        - services
+
+    - name: Remove steam-monitor files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/home/{{ streamin_user }}/.config/systemd/user/steam-monitor.service"
+        - "/home/{{ streamin_user }}/.local/bin/steam_monitor.py"
+        - "/home/{{ streamin_user }}/.local/state/steam_monitor_state.json"
+        - "/home/{{ streamin_user }}/.local/share/sunshine/covers"
+      tags:
+        - cleanup
+        - files
+
+    - name: Uninstall Python packages
+      pip:
+        name:
+          - vdf
+          - inotify-simple
+        state: absent
+        extra_args: "--user --break-system-packages"
+      become_user: "{{ streamin_user }}"
+      environment:
+        HOME: "/home/{{ streamin_user }}"
+      failed_when: false
+      tags:
+        - cleanup
+        - packages
+
+    - name: Reload systemd user daemon
+      shell: systemctl --user daemon-reload
+      become_user: "{{ streamin_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+      tags:
+        - cleanup
+        - services
+
+    - name: Create clean apps.json with only Steam Big Picture
+      copy:
+        content: |
+          {
+            "env": {
+              "PATH": "$(PATH):$(HOME)/.local/bin"
+            },
+            "apps": [
+              {
+                "name": "Steam Big Picture",
+                "output": "",
+                "cmd": "/home/{{ streamin_user }}/.local/bin/launch-steam.sh -bigpicture",
+                "exclude-global-prep-cmd": "false",
+                "elevated": "false",
+                "auto-detach": "true",
+                "image-path": ""
+              }
+            ]
+          }
+        dest: "/home/{{ streamin_user }}/.config/sunshine/apps.json"
+        owner: "{{ streamin_user }}"
+        group: "{{ streamin_user }}"
+        mode: '0644'
+      tags:
+        - cleanup
+        - configuration
+
+    - name: Reload Sunshine to apply changes
+      systemd:
+        name: sunshine.service
+        state: reloaded
+        scope: user
+      become_user: "{{ streamin_user }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+      tags:
+        - cleanup
+        - services
+
+    - name: Display cleanup summary
+      debug:
+        msg:
+          - "============================================"
+          - "  Steam-monitor cleanup complete!"
+          - "============================================"
+          - ""
+          - "Removed:"
+          - "  - steam-monitor.service (stopped & disabled)"
+          - "  - steam_monitor.py script"
+          - "  - Python packages (vdf, inotify-simple)"
+          - "  - Game covers directory"
+          - "  - State file"
+          - ""
+          - "Configured:"
+          - "  - apps.json now contains only Steam Big Picture"
+          - "  - auto-detach enabled for clean session handling"
+          - ""
+          - "Next: Connect via Moonlight and test Steam Big Picture"
+          - "============================================"
+      tags:
+        - cleanup
