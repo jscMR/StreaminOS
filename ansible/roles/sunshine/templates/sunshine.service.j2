@@ -2,8 +2,6 @@
 Description=Sunshine Game Streaming Server
 Documentation=https://docs.lizardbyte.dev/projects/sunshine/
 BindsTo=graphical-session.target
-Wants=sway.service
-After=sway.service
 
 [Service]
 Type=simple
@@ -11,9 +9,8 @@ ExecStart=/usr/bin/sunshine {{ sunshine_config_dir }}/sunshine.conf
 Restart={{ 'on-failure' if sunshine_restart_on_failure else 'no' }}
 RestartSec={{ sunshine_restart_sec }}
 
-# Environment for Wayland
+# Environment - no WAYLAND_DISPLAY needed, KMS capture doesn't require it
 Environment=XDG_RUNTIME_DIR=/run/user/{{ streamin_uid }}
-Environment=WAYLAND_DISPLAY={{ sunshine_display }}
 Environment=XDG_CONFIG_HOME={{ streamin_home }}/.config
 Environment=XDG_DATA_HOME={{ streamin_home }}/.local/share
 

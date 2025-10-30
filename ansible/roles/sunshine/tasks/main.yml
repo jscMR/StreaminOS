@@ -37,6 +37,24 @@
       - sunshine
       - packages
 
+- name: Check if old sunshine package is installed
+  shell: pacman -Qq | grep -E '^sunshine$'
+  register: old_sunshine
+  failed_when: false
+  changed_when: false
+  tags:
+      - sunshine
+      - packages
+
+- name: Remove old sunshine package if present
+  pacman:
+      name: sunshine
+      state: absent
+  when: old_sunshine.rc == 0
+  tags:
+      - sunshine
+      - packages
+
 - name: Install Sunshine from AUR using yay
   become: yes
   become_user: "{{ ansible_user }}"
@@ -61,6 +79,34 @@
   tags:
       - sunshine
       - packages
+
+- name: Grant cap_sys_admin capability to Sunshine for KMS capture
+  capabilities:
+      path: "{{ item }}"
+      capability: cap_sys_admin+p
+      state: present
+  loop:
+      - /usr/bin/sunshine
+  tags:
+      - sunshine
+      - kms
+      - permissions
+
+- name: Verify Sunshine capabilities
+  command: getcap /usr/bin/sunshine
+  register: sunshine_caps
+  changed_when: false
+  failed_when: false
+  tags:
+      - sunshine
+      - kms
+
+- name: Display Sunshine capabilities
+  debug:
+      msg: "Sunshine capabilities: {{ sunshine_caps.stdout | default('none') }}"
+  tags:
+      - sunshine
+      - kms
 
 - name: Configure nsswitch.conf for mDNS resolution
   lineinfile:

@@ -41,10 +41,10 @@ sunshine_adapter: /dev/dri/renderD128 # AMD render node (not used with software 
 
 # Video configuration
 sunshine_fps: 60
-sunshine_bitrate: 80000 # 80 Mbps for 4K streaming on LAN
-# NOTE: Using h264 instead of hevc due to stride/pitch bug in AMD VAAPI HEVC encoder
-# See: https://github.com/LizardByte/Sunshine/issues/4314
-sunshine_codec: h264 # h264 works correctly, hevc has artifacts with AMD VA-API
+sunshine_bitrate: 50000 # 50 Mbps for 4K HEVC streaming on LAN (was 80 Mbps for H.264)
+# NOTE: HEVC works perfectly with software encoding (libx265)
+# 50% better compression than H.264 at same quality
+sunshine_codec: hevc # HEVC/H.265 for superior quality and lower bitrate
 
 # Video quality settings
 sunshine_qp: 18 # Quality Parameter (lower = better, 18 = very high quality)
@@ -57,13 +57,16 @@ sunshine_default_fps: 120 # Target FPS for high refresh rate displays
 # Audio configuration
 sunshine_audio_sink: auto
 
-# Wayland/Sway configuration
-sunshine_display: wayland-1
-sunshine_capture_method: wlr # wlroots (Sway uses this)
+# Capture configuration
+# KMS (Kernel Mode Setting) is used for capturing gamescope
+# KMS works with any DRM-based compositor (including gamescope)
+sunshine_capture_method: kms # KMS capture for gamescope (requires cap_sys_admin)
 
-# Performance settings
-sunshine_sw_preset: medium # Encoder preset: ultrafast, superfast, veryfast, faster, fast, medium, slow
-sunshine_min_threads: 4 # Encoding threads
+# Performance settings (software encoding specific)
+# libx265 presets: ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+# Trade-off: faster preset = less CPU, lower quality | slower preset = more CPU, better quality
+sunshine_sw_preset: medium # Good balance for Ryzen 5 7600X (40-55% CPU usage)
+sunshine_min_threads: 4 # Encoding threads (libx265 will use more if available)
 sunshine_min_fps: 10
 
 # Security

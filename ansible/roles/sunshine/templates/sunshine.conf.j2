@@ -27,11 +27,11 @@ output_name = 0
 # Audio settings
 audio_sink = {{ sunshine_audio_sink }}
 
-# Capture method for Wayland
+# Capture method for gamescope
+# KMS (Kernel Mode Setting) captures directly from DRM/KMS layer
+# Works with any DRM-based compositor including gamescope
+# Requires cap_sys_admin capability (set by Ansible)
 capture = {{ sunshine_capture_method }}
-
-# Wayland display
-wayland_display = {{ sunshine_display }}
 
 # Pixel format (try to force a compatible format for VAAPI)
 # Options: nv12, yuv420p, p010le
@@ -57,3 +57,9 @@ credentials_file = {{ sunshine_config_dir }}/credentials.json
 
 # UPnP
 upnp = off
+
+# Global preparation command - Dynamic resolution per client
+# NOTE: With gamescope, resolution is handled via command-line flags
+# Gamescope receives resolution dynamically via SUNSHINE_CLIENT_* environment variables
+# No global_prep_cmd needed - gamescope launcher script handles this
+# global_prep_cmd = []
