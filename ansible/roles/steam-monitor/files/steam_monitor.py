@@ -28,14 +28,24 @@ try:
     from inotify_simple import INotify, flags
 except ImportError as e:
     print(f"ERROR: Missing required Python package: {e}", file=sys.stderr)
-    print("Install with: pip install --user vdf requests inotify-simple", file=sys.stderr)
+    print(
+        "Install with: pip install --user vdf requests inotify-simple", file=sys.stderr
+    )
     sys.exit(1)
 
 # Configuration (will be set by environment or defaults)
-STEAM_LIBRARY_PATH = Path(os.getenv("STEAM_LIBRARY_PATH", "~/.local/share/Steam/steamapps")).expanduser()
-SUNSHINE_APPS_FILE = Path(os.getenv("SUNSHINE_APPS_FILE", "~/.config/sunshine/apps.json")).expanduser()
-COVERS_DIR = Path(os.getenv("COVERS_DIR", "~/.local/share/sunshine/covers")).expanduser()
-STATE_FILE = Path(os.getenv("STATE_FILE", "~/.local/state/steam_monitor_state.json")).expanduser()
+STEAM_LIBRARY_PATH = Path(
+    os.getenv("STEAM_LIBRARY_PATH", "~/.local/share/Steam/steamapps")
+).expanduser()
+SUNSHINE_APPS_FILE = Path(
+    os.getenv("SUNSHINE_APPS_FILE", "~/.config/sunshine/apps.json")
+).expanduser()
+COVERS_DIR = Path(
+    os.getenv("COVERS_DIR", "~/.local/share/sunshine/covers")
+).expanduser()
+STATE_FILE = Path(
+    os.getenv("STATE_FILE", "~/.local/state/steam_monitor_state.json")
+).expanduser()
 
 # Steam API configuration
 STEAM_API_BASE = "https://store.steampowered.com/api"
@@ -57,18 +67,18 @@ REMOVE_UNINSTALLED = os.getenv("REMOVE_UNINSTALLED", "true").lower() == "true"
 
 # Excluded patterns
 EXCLUDED_PATTERNS = [
-    r'^Proton.*',
-    r'^SteamLinuxRuntime.*',
-    r'^Steam.*Tools',
-    r'^Steamworks Common.*',
-    r'^Steamworks SDK.*',
+    r"^Proton.*",
+    r"^SteamLinuxRuntime.*",
+    r"^Steam.*Tools",
+    r"^Steamworks Common.*",
+    r"^Steamworks SDK.*",
 ]
 
 # Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(levelname)s] %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    format="[%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
 
@@ -79,7 +89,7 @@ class SteamMonitor:
     def __init__(self):
         self.state = self.load_state()
         self.session = requests.Session()
-        self.session.headers.update({'User-Agent': 'SteamMonitor/1.0'})
+        self.session.headers.update({"User-Agent": "SteamMonitor/1.0"})
 
         # Ensure directories exist
         COVERS_DIR.mkdir(parents=True, exist_ok=True)
@@ -90,22 +100,18 @@ class SteamMonitor:
         """Load previous state from file."""
         if STATE_FILE.exists():
             try:
-                with open(STATE_FILE, 'r') as f:
+                with open(STATE_FILE, "r") as f:
                     return json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load state file: {e}")
 
-        return {
-            "version": "1.0",
-            "last_scan": None,
-            "known_games": {}
-        }
+        return {"version": "1.0", "last_scan": None, "known_games": {}}
 
     def save_state(self):
         """Save current state to file."""
         try:
             self.state["last_scan"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-            with open(STATE_FILE, 'w') as f:
+            with open(STATE_FILE, "w") as f:
                 json.dump(self.state, f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save state: {e}")
@@ -120,15 +126,15 @@ class SteamMonitor:
 
         for manifest_file in STEAM_LIBRARY_PATH.glob("appmanifest_*.acf"):
             try:
-                appid = manifest_file.stem.split('_')[1]
-                with open(manifest_file, 'r', encoding='utf-8') as f:
+                appid = manifest_file.stem.split("_")[1]
+                with open(manifest_file, "r", encoding="utf-8") as f:
                     data = vdf.load(f)
-                    app_state = data.get('AppState', {})
+                    app_state = data.get("AppState", {})
                     games[appid] = {
-                        'name': app_state.get('name', f'Game {appid}'),
-                        'installdir': app_state.get('installdir', ''),
-                        'size_bytes': int(app_state.get('SizeOnDisk', 0)),
-                        'manifest_file': str(manifest_file)
+                        "name": app_state.get("name", f"Game {appid}"),
+                        "installdir": app_state.get("installdir", ""),
+                        "size_bytes": int(app_state.get("SizeOnDisk", 0)),
+                        "manifest_file": str(manifest_file),
                     }
             except Exception as e:
                 logger.warning(f"Failed to parse {manifest_file}: {e}")
@@ -137,8 +143,8 @@ class SteamMonitor:
 
     def is_excluded(self, game_info: Dict) -> tuple[bool, str]:
         """Check if game should be excluded based on filters."""
-        name = game_info['name']
-        size_mb = game_info['size_bytes'] / (1024 * 1024)
+        name = game_info["name"]
+        size_mb = game_info["size_bytes"] / (1024 * 1024)
 
         # Check size
         if size_mb < MIN_SIZE_MB:
@@ -163,8 +169,8 @@ class SteamMonitor:
                 response.raise_for_status()
 
                 data = response.json()
-                if data.get(appid, {}).get('success'):
-                    return data[appid]['data']
+                if data.get(appid, {}).get("success"):
+                    return data[appid]["data"]
                 else:
                     logger.warning(f"[API] {appid}: API returned success=false")
                     return None
@@ -175,16 +181,18 @@ class SteamMonitor:
                 logger.warning(f"[API] {appid}: Request failed: {e}")
 
             if attempt < 2:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                time.sleep(2**attempt)  # Exponential backoff
 
         return None
 
-    def is_game_playable(self, game_info: Dict, api_details: Optional[Dict]) -> tuple[bool, str]:
+    def is_game_playable(
+        self, game_info: Dict, api_details: Optional[Dict]
+    ) -> tuple[bool, str]:
         """Determine if this is a playable game (not DLC, tool, etc)."""
         # Check API details if available
         if api_details and EXCLUDE_DLC:
-            app_type = api_details.get('type', '').lower()
-            if app_type in ['dlc', 'demo', 'tool', 'config', 'application']:
+            app_type = api_details.get("type", "").lower()
+            if app_type in ["dlc", "demo", "tool", "config", "application"]:
                 return False, f"type is '{app_type}'"
 
         return True, ""
@@ -201,7 +209,7 @@ class SteamMonitor:
             try:
                 response = self.session.get(url, timeout=30, stream=True)
                 if response.status_code == 200:
-                    with open(cover_path, 'wb') as f:
+                    with open(cover_path, "wb") as f:
                         shutil.copyfileobj(response.raw, f)
 
                     size_kb = cover_path.stat().st_size / 1024
@@ -219,7 +227,7 @@ class SteamMonitor:
             return {"env": {"PATH": "$(PATH):$(HOME)/.local/bin"}, "apps": []}
 
         try:
-            with open(SUNSHINE_APPS_FILE, 'r') as f:
+            with open(SUNSHINE_APPS_FILE, "r") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load {SUNSHINE_APPS_FILE}: {e}")
@@ -229,13 +237,13 @@ class SteamMonitor:
         """Save Sunshine apps.json atomically."""
         # Backup existing file
         if SUNSHINE_APPS_FILE.exists():
-            backup_path = SUNSHINE_APPS_FILE.with_suffix('.json.backup')
+            backup_path = SUNSHINE_APPS_FILE.with_suffix(".json.backup")
             shutil.copy2(SUNSHINE_APPS_FILE, backup_path)
 
         # Write to temporary file
-        tmp_path = SUNSHINE_APPS_FILE.with_suffix('.json.tmp')
+        tmp_path = SUNSHINE_APPS_FILE.with_suffix(".json.tmp")
         try:
-            with open(tmp_path, 'w') as f:
+            with open(tmp_path, "w") as f:
                 json.dump(apps_data, f, indent=2)
 
             # Atomic rename
@@ -272,33 +280,35 @@ class SteamMonitor:
         apps_data = self.load_sunshine_apps()
 
         # Check if game already exists
-        for app in apps_data['apps']:
-            if f"steam://rungameid/{appid}" in app.get('cmd', ''):
-                logger.info(f"[EXISTS] {appid}: {game_info['name']} already in Sunshine")
+        for app in apps_data["apps"]:
+            if f"steam://rungameid/{appid}" in app.get("cmd", ""):
+                logger.info(
+                    f"[EXISTS] {appid}: {game_info['name']} already in Sunshine"
+                )
                 return
 
         # Create app entry
         new_app = {
-            "name": game_info['name'],
+            "name": game_info["name"],
             "output": "",
             "cmd": f"steam steam://rungameid/{appid}",
             "exclude-global-prep-cmd": "false",
             "elevated": "false",
             "auto-detach": "false",
-            "image-path": str(cover_path) if cover_path else ""
+            "image-path": str(cover_path) if cover_path else "",
         }
 
         # Add to apps list
-        apps_data['apps'].append(new_app)
+        apps_data["apps"].append(new_app)
 
         # Save
         self.save_sunshine_apps(apps_data)
 
         # Update state
-        self.state['known_games'][appid] = {
-            "name": game_info['name'],
+        self.state["known_games"][appid] = {
+            "name": game_info["name"],
             "added_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "in_sunshine": True
+            "in_sunshine": True,
         }
         self.save_state()
 
@@ -307,19 +317,20 @@ class SteamMonitor:
 
     def remove_game_from_sunshine(self, appid: str):
         """Remove a game from Sunshine apps.json."""
-        game_name = self.state['known_games'].get(appid, {}).get('name', appid)
+        game_name = self.state["known_games"].get(appid, {}).get("name", appid)
 
         # Load current apps
         apps_data = self.load_sunshine_apps()
 
         # Filter out the game
-        original_count = len(apps_data['apps'])
-        apps_data['apps'] = [
-            app for app in apps_data['apps']
-            if f"steam://rungameid/{appid}" not in app.get('cmd', '')
+        original_count = len(apps_data["apps"])
+        apps_data["apps"] = [
+            app
+            for app in apps_data["apps"]
+            if f"steam://rungameid/{appid}" not in app.get("cmd", "")
         ]
 
-        if len(apps_data['apps']) < original_count:
+        if len(apps_data["apps"]) < original_count:
             self.save_sunshine_apps(apps_data)
             logger.info(f"[REMOVED] {appid}: {game_name} from Sunshine")
 
@@ -329,8 +340,8 @@ class SteamMonitor:
                 cover_path.unlink()
 
             # Update state
-            if appid in self.state['known_games']:
-                del self.state['known_games'][appid]
+            if appid in self.state["known_games"]:
+                del self.state["known_games"][appid]
             self.save_state()
 
             self.reload_sunshine()
@@ -339,16 +350,30 @@ class SteamMonitor:
         """Reload Sunshine service to apply changes."""
         try:
             import subprocess
+
+            # Use reload instead of reload-or-restart (faster, less disruptive)
             result = subprocess.run(
-                ['systemctl', '--user', 'reload-or-restart', 'sunshine.service'],
+                ["systemctl", "--user", "kill", "-s", "SIGHUP", "sunshine.service"],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=2,
             )
             if result.returncode == 0:
-                logger.debug("[SUNSHINE] Service reloaded")
+                logger.debug("[SUNSHINE] Service reloaded (SIGHUP)")
             else:
-                logger.warning(f"[SUNSHINE] Failed to reload: {result.stderr}")
+                # Fallback: try reload-or-restart with longer timeout
+                result = subprocess.run(
+                    ["systemctl", "--user", "reload-or-restart", "sunshine.service"],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                )
+                if result.returncode == 0:
+                    logger.debug("[SUNSHINE] Service reloaded")
+                else:
+                    logger.warning(f"[SUNSHINE] Failed to reload: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            logger.warning("[SUNSHINE] Reload timed out (service may be busy)")
         except Exception as e:
             logger.warning(f"[SUNSHINE] Failed to reload service: {e}")
 
@@ -362,7 +387,7 @@ class SteamMonitor:
 
         # Detect removed games
         if REMOVE_UNINSTALLED:
-            known_appids = set(self.state['known_games'].keys())
+            known_appids = set(self.state["known_games"].keys())
             current_appids = set(current_games.keys())
             removed_appids = known_appids - current_appids
 
@@ -373,7 +398,7 @@ class SteamMonitor:
 
         # Detect new games
         for appid, game_info in current_games.items():
-            if appid not in self.state['known_games']:
+            if appid not in self.state["known_games"]:
                 self.add_game_to_sunshine(appid, game_info)
 
         logger.info("Sync complete")
@@ -383,7 +408,9 @@ class SteamMonitor:
         logger.info(f"Watching {STEAM_LIBRARY_PATH} for changes...")
 
         inotify = INotify()
-        watch_flags = flags.CLOSE_WRITE | flags.DELETE | flags.MOVED_TO | flags.MOVED_FROM
+        watch_flags = (
+            flags.CLOSE_WRITE | flags.DELETE | flags.MOVED_TO | flags.MOVED_FROM
+        )
         wd = inotify.add_watch(str(STEAM_LIBRARY_PATH), watch_flags)
 
         logger.info("Steam monitor started - waiting for changes")
@@ -392,15 +419,22 @@ class SteamMonitor:
             try:
                 for event in inotify.read(timeout=1000):
                     filename = event.name
-                    if not filename or not filename.startswith('appmanifest_'):
+                    if not filename or not filename.startswith("appmanifest_"):
                         continue
 
-                    appid = filename.split('_')[1].split('.')[0]
+                    # Ignore temporary files created by Steam during updates
+                    if ".tmp" in filename or filename.endswith(".tmp"):
+                        logger.debug(f"[INOTIFY] Ignoring temporary file: {filename}")
+                        continue
+
+                    appid = filename.split("_")[1].split(".")[0]
 
                     if event.mask & (flags.CLOSE_WRITE | flags.MOVED_TO):
-                        logger.info(f"[INOTIFY] Detected new/modified manifest: {filename}")
-                        # Small delay to ensure file is fully written
-                        time.sleep(1)
+                        logger.info(
+                            f"[INOTIFY] Detected new/modified manifest: {filename}"
+                        )
+                        # Longer delay to ensure file is fully written and stable
+                        time.sleep(3)
                         games = self.scan_steam_manifests()
                         if appid in games:
                             self.add_game_to_sunshine(appid, games[appid])
@@ -445,5 +479,5 @@ def main():
         logger.info("Steam monitor stopped")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
