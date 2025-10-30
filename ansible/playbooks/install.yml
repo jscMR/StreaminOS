@@ -37,17 +37,18 @@
             - users
             - system
 
-      # Base system with Sway compositor
-      - role: base
-        tags:
-            - base
-            - system
-
       # AUR helper (yay) - required for installing AUR packages
       - role: aur-helper
         tags:
             - aur-helper
             - packages
+            - system
+
+      # Gamescope micro-compositor for gaming
+      - role: gamescope
+        tags:
+            - gamescope
+            - compositor
             - system
 
       # Sunshine game streaming server
@@ -93,27 +94,28 @@
                   - Admin user '{{ ansible_user }}' for SSH/management
                   - Service user '{{ streamin_user }}' for streaming
 
-                ✓ Base system installed:
-                  - Sway (Wayland compositor with EVDI support)
-                  - Auto-login configured on tty1
-                  - System utilities and dependencies
+                ✓ Console OS Architecture:
+                  - Gamescope (micro-compositor for gaming)
+                  - On-demand launch (no persistent compositor)
+                  - DRM backend for optimal performance
+                  - Automatic window focus management
 
                 ✓ Streaming components:
                   - Sunshine (game streaming server)
+                  - KMS capture method (cap_sys_admin enabled)
                   - Avahi (mDNS autodiscovery)
-                  - EVDI (virtual displays for headless streaming)
+                  - Software encoding (HEVC/H.265)
 
                 ✓ Gaming components:
                   - Steam (game client and library)
-                  - Sunshine app configured: Steam Big Picture only
+                  - Gamescope integration enabled
+                  - Sunshine app: Steam Big Picture only
 
                 ✓ Configuration locations:
-                  - Sway: {{ streamin_home }}/.config/sway/config
+                  - Gamescope launcher: {{ streamin_home }}/.local/bin/launch-gamescope-steam.sh
                   - Sunshine: {{ streamin_home }}/.config/sunshine/
                   - Steam: {{ streamin_home }}/.local/share/Steam
                   - Services: {{ streamin_home }}/.config/systemd/user/
-                  - EVDI scripts: /opt/evdi-scripts/
-                  - Logs: journalctl -u <service> -f
 
                 Next steps:
                 1. Connect to StreaminOS using Moonlight client
@@ -126,9 +128,10 @@
                    - Dashboard: ansible-playbook install.yml --tags dashboard
 
                 5. Useful commands:
-                   - List EVDI displays: /opt/evdi-scripts/list_virtual_displays.sh
-                   - Check Sway outputs: swaymsg -t get_outputs
-                   - Sunshine logs: journalctl --user -u sunshine.service -f
+                   - Check Sunshine: sudo -u streaminos systemctl --user status sunshine.service
+                   - Sunshine logs: sudo -u streaminos journalctl --user -u sunshine.service -f
+                   - Test gamescope: sudo -u streaminos gamescope -- glxgears
+                   - Sunshine web UI: https://{{ ansible_host }}:47985
 
                 For support: https://github.com/yourorg/StreaminOS
         tags: always

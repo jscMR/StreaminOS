@@ -1,0 +1,150 @@
+---
+- name: Migrate StreaminOS from Sway to Gamescope
+  hosts: streamin_servers
+  become: yes
+  gather_facts: yes
+
+  vars:
+      streamin_user: streaminos
+      streamin_uid: 1100
+
+  tasks:
+      - name: Display migration information
+        debug:
+            msg: |
+                ============================================
+                Migrating StreaminOS: Sway → Gamescope
+                ============================================
+
+                This playbook will:
+                1. Stop and disable Sway service
+                2. Remove Sway configuration files
+                3. Remove Sway packages
+                4. Clean up related scripts
+                5. Prepare for gamescope architecture
+
+                After this migration:
+                - No persistent compositor running
+                - Gamescope launched on-demand by Sunshine
+                - Console OS architecture fully implemented
+
+                ============================================
+        tags: always
+
+      - name: Stop Sway service for streaminos user
+        systemd:
+            name: sway.service
+            state: stopped
+            scope: user
+        become_user: "{{ streamin_user }}"
+        environment:
+            XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+        failed_when: false
+        tags:
+            - migration
+            - services
+
+      - name: Disable Sway service for streaminos user
+        systemd:
+            name: sway.service
+            enabled: no
+            scope: user
+        become_user: "{{ streamin_user }}"
+        environment:
+            XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+        failed_when: false
+        tags:
+            - migration
+            - services
+
+      - name: Remove Sway service file
+        file:
+            path: "/home/{{ streamin_user }}/.config/systemd/user/sway.service"
+            state: absent
+        tags:
+            - migration
+            - cleanup
+
+      - name: Remove Sway configuration
+        file:
+            path: "/home/{{ streamin_user }}/.config/sway"
+            state: absent
+        tags:
+            - migration
+            - cleanup
+
+      - name: Remove wlr-randr resolution scripts
+        file:
+            path: "/home/{{ streamin_user }}/.local/bin/{{ item }}"
+            state: absent
+        loop:
+            - set-streaming-resolution.sh
+        failed_when: false
+        tags:
+            - migration
+            - cleanup
+
+      - name: Reload systemd user daemon
+        shell: systemctl --user daemon-reload
+        become_user: "{{ streamin_user }}"
+        environment:
+            XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+        tags:
+            - migration
+            - services
+
+      - name: Remove Sway and wlroots packages
+        pacman:
+            name:
+                - sway
+                - swayidle
+                - swaylock
+                - wlr-randr
+                - foot # Terminal emulator (no longer needed)
+            state: absent
+        failed_when: false
+        tags:
+            - migration
+            - packages
+
+      - name: Verify Sway is removed
+        command: which sway
+        register: sway_check
+        changed_when: false
+        failed_when: false
+        tags:
+            - migration
+            - verify
+
+      - name: Display migration result
+        debug:
+            msg: |
+                ============================================
+                Migration Complete: Sway → Gamescope
+                ============================================
+
+                ✓ Sway service stopped and disabled
+                ✓ Sway configuration removed
+                ✓ Sway packages uninstalled
+                ✓ wlr-randr scripts cleaned up
+
+                Sway still installed: {{ 'Yes (manual removal needed)' if sway_check.rc == 0 else 'No' }}
+
+                Next steps:
+                1. Deploy updated StreaminOS configuration:
+                   ansible-playbook -i inventory/production.yml install.yml
+
+                2. This will install:
+                   - Gamescope role
+                   - Updated Sunshine (KMS capture)
+                   - Updated Steam (gamescope launcher)
+
+                3. Verify deployment:
+                   - Connect via Moonlight
+                   - Launch Steam Big Picture
+                   - Test game launching
+                   - Verify window focus works correctly
+
+                Server is ready for gamescope deployment!
+                ============================================
+        tags: always
