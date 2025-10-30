@@ -47,7 +47,53 @@ StreaminOS is designed around a single, focused vision: **providing a Steam Deck
 - Easier to maintain and debug
 - Cleaner user experience
 
-### 3. SSH for Administration, Not Desktop
+### 3. Gamescope Over Traditional Compositor
+
+**Decision**: Use Gamescope as the sole compositor instead of Sway/wlroots.
+
+**Problem Solved**:
+When using Sway, games launched from Steam Big Picture would stay "behind" the Big Picture interface - the window manager didn't understand the relationship between Steam and its games, causing focus issues.
+
+**Rationale**:
+- **Purpose-built**: Gamescope is Valve's micro-compositor designed specifically for gaming
+- **Focus management**: Automatically handles Steam ↔ Game window transitions
+- **No desktop needed**: StreaminOS is headless - nobody uses local display
+- **Simpler stack**: One compositor instead of two (Sway + nested gamescope)
+- **Better performance**: Gamescope optimized for game frame pacing and latency
+- **Console OS architecture**: Aligns with "console at home" philosophy
+
+**Architecture**:
+```
+Sunshine → Gamescope (DRM backend) → Steam Big Picture → Games
+```
+
+**What We Removed**:
+- Sway compositor and configuration
+- wlroots headless backend setup  
+- wlr-randr resolution scripts
+- Systemd Sway service
+- Auto-login on tty1
+
+**How Gamescope Works**:
+- Launched **on-demand** by Sunshine (not persistent)
+- Receives resolution dynamically via environment variables
+- Uses DRM backend for direct hardware access
+- Creates isolated Wayland sandbox for Steam
+- Sunshine captures via KMS (Kernel Mode Setting)
+
+**Benefits**:
+- ✅ Fixes game window focus automatically
+- ✅ Lower resource usage (one compositor vs two)
+- ✅ No persistent compositor consuming resources when idle
+- ✅ Upscaling support (FSR, NIS) available for future
+- ✅ True "console OS" - no desktop environment bloat
+
+**Trade-offs Considered**:
+- ⚠️ Less flexibility than Sway (but we don't need it)
+- ⚠️ Gamescope designed for AMD GPUs (perfect for RX 7900 GRE)
+- ⚠️ No manual window management (we don't want it anyway)
+
+### 4. SSH for Administration, Not Desktop
 
 **Decision**: No desktop/terminal app in Moonlight for system management.
 
@@ -66,14 +112,14 @@ ssh noid@streaminos.local
 sudo -u streaminos systemctl --user status sunshine.service
 ```
 
-### 4. Essential Features Only
+### 5. Essential Features Only
 
 **What We Keep**:
 
-1. **Dynamic Resolution Detection** (`global_prep_cmd`)
-   - Essential for matching client display capabilities
-   - Improves streaming quality and performance
-   - Automatic, transparent, no user intervention needed
+1. **Dynamic Resolution Detection** (via Gamescope)
+   - Gamescope receives client resolution from Sunshine environment variables
+   - Automatically matches client display capabilities
+   - No external scripts needed - handled by compositor
 
 2. **Wake-on-LAN**
    - Core feature for on-demand server power-up
@@ -90,6 +136,7 @@ sudo -u streaminos systemctl --user status sunshine.service
 - Automatic game detection and synchronization
 - Cover image management
 - Complex state tracking
+- Persistent compositor service
 
 ## User Experience Flow
 
@@ -207,7 +254,61 @@ StreaminOS embraces the **"Steam Deck at home"** philosophy by:
 
 This approach delivers a **robust, performant, and low-maintenance** game streaming experience that focuses on what matters: **playing games**.
 
+## Architecture Evolution
+
+### Version 1.0: Sway + wlroots (Initial Implementation)
+
+The initial architecture used Sway as a traditional Wayland compositor:
+- **Compositor**: Sway with wlroots headless backend
+- **Capture**: wlr capture method in Sunshine
+- **Resolution**: wlr-randr scripts for dynamic adjustment
+- **Auto-start**: Sway service on tty1 auto-login
+
+**Problem Discovered**: Games launched from Steam Big Picture stayed "behind" the interface. Sway's window management couldn't understand the Steam ↔ Game relationship, causing focus issues.
+
+### Version 2.0: Gamescope Pure (Console OS)
+
+Current architecture using Gamescope as the sole compositor:
+- **Compositor**: Gamescope (on-demand, DRM backend)
+- **Capture**: KMS (Kernel Mode Setting) in Sunshine
+- **Resolution**: Gamescope command-line flags (dynamic)
+- **Auto-start**: None - launched by Sunshine when client connects
+
+**Key Changes**:
+```
+REMOVED:
+- ansible/roles/base/ (entire Sway role)
+- Sway systemd service
+- wlroots configuration
+- wlr-randr scripts
+- Auto-login on tty1
+- ~500 lines of code
+
+ADDED:
+- ansible/roles/gamescope/
+- Gamescope launcher script
+- KMS capture configuration
+- On-demand compositor architecture
+- ~200 lines of code
+```
+
+**Migration Path**:
+```bash
+# 1. Clean existing Sway installation
+ansible-playbook -i inventory/production.yml playbooks/migrate-to-gamescope.yml
+
+# 2. Deploy new architecture
+ansible-playbook -i inventory/production.yml playbooks/install.yml
+```
+
+**Results**:
+- ✅ Game window focus works automatically
+- ✅ 60% less code to maintain
+- ✅ Lower idle resource usage (no persistent compositor)
+- ✅ True console OS architecture
+- ✅ Aligns perfectly with "Steam Deck at home" philosophy
+
 ---
 
 **Last Updated**: October 2025  
-**Version**: 1.0 (Minimalist Architecture)
+**Version**: 2.0 (Console OS - Gamescope Architecture)
