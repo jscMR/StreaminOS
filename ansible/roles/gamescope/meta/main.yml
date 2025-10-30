@@ -1,0 +1,26 @@
+---
+# Meta information for gamescope role
+
+dependencies: []
+# No dependencies - gamescope role is self-contained
+# Requires user-setup to be run first (for streaminos user)
+# But dependency management handled at playbook level
+
+galaxy_info:
+    author: StreaminOS Team
+    description: Gamescope micro-compositor for headless game streaming
+    license: MIT
+    min_ansible_version: "2.14"
+
+    platforms:
+        - name: Archlinux
+          versions:
+              - all
+
+    galaxy_tags:
+        - gaming
+        - streaming
+        - wayland
+        - compositor
+        - gamescope
+        - steam

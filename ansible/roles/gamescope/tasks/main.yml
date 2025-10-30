@@ -1,0 +1,135 @@
+---
+# Main tasks for gamescope role
+
+- name: Install gamescope and dependencies
+  pacman:
+      name: "{{ gamescope_packages }}"
+      state: present
+  tags:
+      - gamescope
+      - packages
+
+- name: Verify gamescope installation
+  command: gamescope --version
+  register: gamescope_version
+  changed_when: false
+  failed_when: false
+  tags:
+      - gamescope
+
+- name: Display gamescope version
+  debug:
+      msg: "Gamescope installed: {{ gamescope_version.stdout if gamescope_version.rc == 0 else 'Version check failed' }}"
+  tags:
+      - gamescope
+
+- name: Ensure gamescope user is in required groups
+  user:
+      name: "{{ gamescope_user }}"
+      groups: "{{ gamescope_groups }}"
+      append: yes
+  tags:
+      - gamescope
+      - users
+
+- name: Check DRM device availability
+  stat:
+      path: "{{ gamescope_drm_device }}"
+  register: drm_device
+  tags:
+      - gamescope
+
+- name: Check render device availability
+  stat:
+      path: "{{ gamescope_render_device }}"
+  register: render_device
+  tags:
+      - gamescope
+
+- name: Verify DRM/render devices exist
+  assert:
+      that:
+          - drm_device.stat.exists
+          - render_device.stat.exists
+      fail_msg: "DRM devices not found. Check GPU drivers are installed."
+      success_msg: "DRM devices detected and accessible"
+  tags:
+      - gamescope
+
+- name: Create gamescope launch wrapper
+  copy:
+      dest: "{{ gamescope_home }}/.local/bin/launch-gamescope-steam.sh"
+      owner: "{{ gamescope_user }}"
+      group: "{{ gamescope_user }}"
+      mode: '0755'
+      content: |
+          #!/bin/bash
+          # Gamescope Steam launcher for StreaminOS
+          # Launches Steam Big Picture within gamescope micro-compositor
+          # Resolution is passed dynamically from Sunshine via environment variables
+
+          # Get resolution from Sunshine environment or use defaults
+          WIDTH="${SUNSHINE_CLIENT_WIDTH:-{{ gamescope_default_width }}}"
+          HEIGHT="${SUNSHINE_CLIENT_HEIGHT:-{{ gamescope_default_height }}}"
+          FPS="${SUNSHINE_CLIENT_FPS:-{{ gamescope_default_fps }}}"
+
+          # Environment variables for optimal gaming
+          export DXVK_HUD=0
+          export ENABLE_VKBASALT=0
+          export SDL_VIDEODRIVER=wayland
+          export QT_QPA_PLATFORM=wayland
+
+          # Launch gamescope with Steam Big Picture
+          exec gamescope \
+              -W "$WIDTH" \
+              -H "$HEIGHT" \
+              -r "$FPS" \
+              {{ gamescope_flags }} \
+              -- {{ gamescope_home }}/.local/bin/launch-steam.sh -bigpicture
+  tags:
+      - gamescope
+      - configuration
+
+- name: Display gamescope information
+  debug:
+      msg: |
+          ====================================
+          Gamescope Installation Complete
+          ====================================
+
+          Gamescope is now installed and configured for {{ gamescope_user }}
+
+          Architecture:
+          - Gamescope replaces Sway as the compositor
+          - Runs in embedded mode (no host compositor needed)
+          - Provides optimal Steam Big Picture experience
+          - Handles game window focus automatically
+
+          Configuration:
+          - Default resolution: {{ gamescope_default_width }}x{{ gamescope_default_height }}@{{ gamescope_default_fps }}
+          - DRM device: {{ gamescope_drm_device }}
+          - Render device: {{ gamescope_render_device }}
+          - Backend: {{ gamescope_backend }}
+
+          Launch wrapper:
+          - Script: {{ gamescope_home }}/.local/bin/launch-gamescope-steam.sh
+          - Automatically uses client resolution from Sunshine
+          - Steam integration mode enabled (-e flag)
+
+          Sunshine Integration:
+          - Sunshine will launch gamescope on-demand
+          - KMS capture method used (requires cap_sys_admin)
+          - No persistent gamescope service needed
+
+          Next steps:
+          1. Update Sunshine apps.json to use gamescope launcher
+          2. Configure Sunshine for KMS capture
+          3. Remove Sway components
+          4. Test streaming from Moonlight
+
+          For troubleshooting:
+          - Check DRM permissions: ls -la {{ gamescope_drm_device }}
+          - Test gamescope manually: gamescope -- glxgears
+          - View Sunshine logs: journalctl --user -u sunshine.service -f
+  tags:
+      - gamescope

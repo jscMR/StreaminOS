@@ -1,0 +1,55 @@
+---
+# Default variables for gamescope role
+
+# Gamescope user configuration
+gamescope_user: "{{ streamin_user }}"
+gamescope_home: "{{ streamin_home }}"
+
+# Gamescope packages
+gamescope_packages:
+    - gamescope # Valve's micro-compositor for gaming
+    - mesa # OpenGL/Vulkan drivers
+    - vulkan-radeon # AMD Vulkan support
+    - lib32-mesa # 32-bit game support
+    - lib32-vulkan-radeon # 32-bit Vulkan
+    - libva # VA-API for video acceleration
+    - libva-mesa-driver # Mesa VA-API driver
+    - pipewire # Audio/video routing
+    - wireplumber # PipeWire session manager
+
+# Gamescope default configuration
+# These are defaults - actual resolution comes from Sunshine client at runtime
+gamescope_default_width: 3840
+gamescope_default_height: 2160
+gamescope_default_fps: 120
+
+# Gamescope flags for optimal streaming
+# -W/-H/-r: Output resolution and refresh rate (will be dynamic from Sunshine)
+# -f: Fullscreen mode
+# -e: Steam integration mode (enables special Steam handling)
+# --expose-wayland: Allow Wayland apps to connect
+# --force-grab-cursor: Better mouse handling for games
+gamescope_flags: "-f -e --expose-wayland --force-grab-cursor"
+
+# DRM/KMS configuration
+# Gamescope needs access to DRM devices for rendering
+gamescope_drm_device: /dev/dri/card0
+gamescope_render_device: /dev/dri/renderD128
+
+# Groups needed for DRM/input access
+gamescope_groups:
+    - video # GPU access
+    - render # Render node access
+    - input # Input devices (keyboard/mouse from clients)
+    - audio # Audio devices
+
+# Performance tuning
+# Gamescope uses less CPU than Sway for gaming workloads
+# These settings optimize for streaming performance
+gamescope_enable_async_flip: true # Reduces latency
+gamescope_allow_tearing: false # Prevent tearing (important for streaming)
+
+# Backend selection
+# Options: drm, sdl, headless, wayland
+# For headless streaming server: drm backend works best
+gamescope_backend: drm
