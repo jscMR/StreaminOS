@@ -1,0 +1,32 @@
+---
+# Handlers for Sunshine role
+
+- name: reload systemd user
+  ansible.builtin.systemd:
+      daemon_reload: yes
+      scope: user
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+
+- name: restart sunshine
+  ansible.builtin.systemd:
+      name: sunshine
+      state: restarted
+      scope: user
+      daemon_reload: yes
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+
+- name: reload sunshine
+  ansible.builtin.systemd:
+      name: sunshine
+      state: reloaded
+      scope: user
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"

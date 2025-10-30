@@ -1,0 +1,212 @@
+---
+# Main tasks for user-setup role
+
+- name: Ensure required groups exist
+  group:
+      name: "{{ item }}"
+      state: present
+  loop:
+      - video
+      - render
+      - input
+      - audio
+  tags:
+      - user-setup
+      - groups
+
+- name: Create streaminos primary group
+  group:
+      name: "{{ streaminos_group }}"
+      gid: "{{ streaminos_gid }}"
+      state: present
+  tags:
+      - user-setup
+      - groups
+
+- name: Create streaminos user
+  user:
+      name: "{{ streaminos_user }}"
+      uid: "{{ streaminos_uid }}"
+      group: "{{ streaminos_group }}"
+      groups: "{{ streaminos_groups }}"
+      home: "{{ streaminos_home }}"
+      shell: "{{ streaminos_shell }}"
+      comment: "{{ streaminos_comment }}"
+      create_home: "{{ streaminos_create_home }}"
+      system: "{{ streaminos_system_user }}"
+      state: present
+  tags:
+      - user-setup
+      - users
+
+- name: Disable password authentication for streaminos
+  user:
+      name: "{{ streaminos_user }}"
+      password: "!" # Locked password
+      update_password: always
+  when: not streaminos_password_login
+  tags:
+      - user-setup
+      - security
+
+- name: Create XDG configuration directories
+  file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ streaminos_user }}"
+      group: "{{ streaminos_group }}"
+      mode: "0755"
+  loop: "{{ streaminos_config_dirs }}"
+  tags:
+      - user-setup
+      - directories
+
+- name: Configure environment variables
+  template:
+      src: environment.j2
+      dest: "{{ streaminos_home }}/.profile"
+      owner: "{{ streaminos_user }}"
+      group: "{{ streaminos_group }}"
+      mode: "0644"
+  tags:
+      - user-setup
+      - environment
+
+- name: Configure bash profile for streaminos
+  template:
+      src: bash_profile.j2
+      dest: "{{ streaminos_home }}/.bash_profile"
+      owner: "{{ streaminos_user }}"
+      group: "{{ streaminos_group }}"
+      mode: "0644"
+  tags:
+      - user-setup
+      - shell
+
+- name: Configure bashrc for streaminos with Sway auto-start
+  template:
+      src: bashrc.j2
+      dest: "{{ streaminos_home }}/.bashrc"
+      owner: "{{ streaminos_user }}"
+      group: "{{ streaminos_group }}"
+      mode: "0644"
+  tags:
+      - user-setup
+      - shell
+
+- name: Create getty override directory
+  file:
+      path: /etc/systemd/system/getty@tty1.service.d
+      state: directory
+      owner: root
+      group: root
+      mode: "0755"
+  when: streaminos_autologin_enabled
+  tags:
+      - user-setup
+      - autologin
+
+- name: Configure autologin for streaminos on tty1
+  template:
+      src: autologin.conf.j2
+      dest: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+      owner: root
+      group: root
+      mode: "0644"
+  when: streaminos_autologin_enabled
+  notify: reload systemd
+  tags:
+      - user-setup
+      - autologin
+
+- name: Configure sudo for streaminos (if enabled)
+  template:
+      src: sudoers.j2
+      dest: /etc/sudoers.d/streaminos
+      owner: root
+      group: root
+      mode: "0440"
+      validate: "visudo -cf %s"
+  when: streaminos_sudo_enabled
+  tags:
+      - user-setup
+      - sudo
+      - security
+
+- name: Remove sudo configuration if disabled
+  file:
+      path: /etc/sudoers.d/streaminos
+      state: absent
+  when: not streaminos_sudo_enabled
+  tags:
+      - user-setup
+      - sudo
+      - security
+
+- name: Ensure security limits directory exists
+  file:
+      path: /etc/security/limits.d
+      state: directory
+      owner: root
+      group: root
+      mode: "0755"
+  tags:
+      - user-setup
+      - performance
+
+- name: Configure PAM limits for streaminos (for real-time audio/performance)
+  template:
+      src: limits.conf.j2
+      dest: /etc/security/limits.d/streaminos.conf
+      owner: root
+      group: root
+      mode: "0644"
+  tags:
+      - user-setup
+      - performance
+
+- name: Create Sway systemd user service
+  template:
+      src: sway.service.j2
+      dest: "{{ streaminos_home }}/.config/systemd/user/sway.service"
+      owner: "{{ streaminos_user }}"
+      group: "{{ streaminos_group }}"
+      mode: "0644"
+  tags:
+      - user-setup
+      - sway
+
+- name: Enable Sway service for streaminos user
+  become: yes
+  become_user: "{{ streaminos_user }}"
+  systemd:
+      name: sway.service
+      enabled: yes
+      scope: user
+      daemon_reload: yes
+  environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ streaminos_uid }}"
+  tags:
+      - user-setup
+      - sway
+
+- name: Verify user creation
+  command: id {{ streaminos_user }}
+  register: streaminos_user_info
+  changed_when: false
+  tags:
+      - user-setup
+      - verify
+
+- name: Display streaminos user information
+  debug:
+      msg: |
+          StreaminOS user created successfully:
+          {{ streaminos_user_info.stdout }}
+          Home: {{ streaminos_home }}
+          Groups: {{ streaminos_groups | join(', ') }}
+          Autologin: {{ 'enabled on tty1' if streaminos_autologin_enabled else 'disabled' }}
+          SSH: {{ 'enabled' if streaminos_ssh_enabled else 'disabled' }}
+  tags:
+      - user-setup
+      - verify

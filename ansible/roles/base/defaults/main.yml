@@ -2,25 +2,39 @@
 # Default variables for base role
 
 base_packages:
-  - base
-  - base-devel
-  - git
-  - dhcpcd
-  - vim
-  - htop
-  - tmux
+    - base
+    - base-devel
+    - git
+    - dhcpcd
+    - vim
+    - htop
+    - tmux
 
 sway_packages:
-  - sway
-  - wayland
-  - xorg-xwayland
-  - swaylock
-  - swayidle
-  - waybar
-  - foot  # lightweight terminal for Wayland
-  - grim  # screenshots
-  - slurp # region selector
-  - wl-clipboard
+    - sway
+    - wayland
+    - xorg-xwayland
+    - swaylock
+    - swayidle
+    - swaybg # wallpaper/background manager
+    - waybar
+    - foot # lightweight terminal for Wayland
+    - grim # screenshots
+    - slurp # region selector
+    - wl-clipboard
 
 enable_dhcpcd: true
 enable_sway_autostart: false
+
+# Headless virtual display configuration
+# These are also defined in group_vars/all.yml but included here for role independence
+headless_outputs_count: 1
+headless_primary_resolution: "3840x2160"
+headless_primary_refresh: 120
+headless_secondary_resolution: "1920x1080"
+headless_secondary_refresh: 60
+# wlroots configuration for headless streaming
+wlr_backends: "headless"
+wlr_renderer: "gles2"
+wlr_libinput_no_devices: "1"
+wlr_renderer_allow_software: "1"

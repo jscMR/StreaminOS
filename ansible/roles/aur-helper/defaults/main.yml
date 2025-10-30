@@ -1,0 +1,21 @@
+---
+# Default variables for aur-helper role
+
+# AUR helper to install (yay or paru)
+aur_helper: yay
+
+# User that will build and install AUR packages
+# This should be a user with sudo privileges (typically the admin user)
+aur_helper_user: "{{ ansible_user }}"
+
+# Temporary directory for building yay
+aur_helper_build_dir: "/tmp/yay-build"
+
+# yay repository URL
+yay_repo_url: "https://aur.archlinux.org/yay-bin.git"
+
+# Dependencies required to build/install yay
+yay_dependencies:
+  - base-devel
+  - git
+  - go

@@ -1,0 +1,202 @@
+---
+# Main tasks for sunshine role
+
+- name: Check if yay is installed (AUR helper)
+  command: which yay
+  register: yay_installed
+  changed_when: false
+  failed_when: false
+  tags:
+      - sunshine
+      - packages
+
+- name: Fail if yay is not installed
+  fail:
+      msg: |
+          yay (AUR helper) is not installed.
+          Please install yay first: https://github.com/Jguer/yay
+          Or install sunshine-bin manually from AUR
+  when: yay_installed.rc != 0
+  tags:
+      - sunshine
+      - packages
+
+- name: Install Sunshine dependencies
+  pacman:
+      name:
+          - libva
+          - libva-mesa-driver
+          - mesa
+          - vulkan-radeon
+          - libvdpau
+          - libva-utils
+          - avahi
+          - nss-mdns
+      state: present
+  tags:
+      - sunshine
+      - packages
+
+- name: Install Sunshine from AUR using yay
+  become: yes
+  become_user: "{{ ansible_user }}"
+  command: yay -S --noconfirm --needed sunshine-bin
+  register: sunshine_install
+  changed_when: "'installing sunshine-bin' in sunshine_install.stdout or 'upgrading sunshine-bin' in sunshine_install.stdout"
+  tags:
+      - sunshine
+      - packages
+
+- name: Verify Sunshine installation
+  command: sunshine --version
+  register: sunshine_version
+  changed_when: false
+  tags:
+      - sunshine
+      - packages
+
+- name: Display Sunshine version
+  debug:
+      msg: "Sunshine installed successfully - Version: {{ sunshine_version.stdout | default('installed') }}"
+  tags:
+      - sunshine
+      - packages
+
+- name: Configure nsswitch.conf for mDNS resolution
+  lineinfile:
+      path: /etc/nsswitch.conf
+      regexp: "^hosts:"
+      line: "hosts: mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] files myhostname dns"
+      backup: yes
+  tags:
+      - sunshine
+      - mdns
+      - network
+
+- name: Enable and start Avahi daemon for mDNS service discovery
+  systemd:
+      name: avahi-daemon.service
+      enabled: yes
+      state: started
+  tags:
+      - sunshine
+      - mdns
+      - network
+
+- name: Ensure Sunshine config directory exists
+  file:
+      path: "{{ sunshine_config_dir }}"
+      state: directory
+      owner: "{{ sunshine_user }}"
+      group: "{{ sunshine_user }}"
+      mode: "0755"
+  tags:
+      - sunshine
+      - config
+
+- name: Create Sunshine configuration
+  template:
+      src: sunshine.conf.j2
+      dest: "{{ sunshine_config_dir }}/sunshine.conf"
+      owner: "{{ sunshine_user }}"
+      group: "{{ sunshine_user }}"
+      mode: "0644"
+  notify: restart sunshine
+  tags:
+      - sunshine
+      - config
+
+- name: Create Sunshine systemd user service
+  template:
+      src: sunshine.service.j2
+      dest: "{{ sunshine_home }}/.config/systemd/user/sunshine.service"
+      owner: "{{ sunshine_user }}"
+      group: "{{ sunshine_user }}"
+      mode: "0644"
+  notify: reload systemd user
+  tags:
+      - sunshine
+      - service
+
+- name: Enable Sunshine service for streaminos user
+  become: yes
+  become_user: "{{ sunshine_user }}"
+  systemd:
+      name: sunshine.service
+      enabled: yes
+      scope: user
+      daemon_reload: yes
+  environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+  tags:
+      - sunshine
+      - service
+
+- name: Check if Sunshine is running
+  become: yes
+  become_user: "{{ sunshine_user }}"
+  systemd:
+      name: sunshine.service
+      state: started
+      scope: user
+  environment:
+      XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+  tags:
+      - sunshine
+      - service
+
+- name: Display Sunshine information
+  debug:
+      msg: |
+          ====================================
+          Sunshine Installation Complete
+          ====================================
+
+          Sunshine is now installed and configured for {{ sunshine_user }}
+
+          Configuration:
+          - Config file: {{ sunshine_config_dir }}/sunshine.conf
+          - Service: {{ sunshine_home }}/.config/systemd/user/sunshine.service
+
+          Network Autodiscovery (mDNS):
+          - ✓ Avahi daemon enabled
+          - ✓ Service advertised as: {{ ansible_hostname }}.local
+          - ✓ Moonlight should auto-detect this server!
+
+          Network Ports:
+          - Web UI: https://{{ ansible_host }}:{{ sunshine_web_ui_port }}
+          - HTTPS Streaming: {{ sunshine_https_port }}
+          - HTTP Streaming: {{ sunshine_port }}
+          - Control: {{ sunshine_rtsp_port }}
+          - UDP: 5353 (mDNS), 47998-48002, 48010 (auto-activated)
+
+          Video Configuration:
+          - Encoder: {{ sunshine_encoder }} (AMD VAAPI Hardware)
+          - Codec: {{ sunshine_codec }} (optimized for 4K)
+          - Target FPS: {{ sunshine_fps }}
+          - Bitrate: {{ sunshine_bitrate }} Kbps ({{ (sunshine_bitrate / 1000) | int }} Mbps)
+          - Slicing: Disabled (artifact prevention)
+          - VBR Mode: {{ sunshine_vbr_mode }}
+
+          IMPORTANT - Virtual Displays:
+          For best quality, install the EVDI role to create virtual displays:
+            ansible-playbook install.yml --tags evdi
+
+          Without EVDI, streaming may have artifacts due to headless setup.
+          With EVDI, you can stream up to 4K@120Hz with perfect quality!
+
+          Next steps:
+          1. Install EVDI role (recommended): --tags evdi
+          2. Open Moonlight - server should appear automatically!
+          3. Or access Web UI: https://{{ ansible_host }}:{{ sunshine_web_ui_port }}
+          4. Create username/password (first time)
+          5. Configure applications (games)
+          6. Start streaming!
+
+          Useful commands:
+          - Check service: sudo -u {{ sunshine_user }} XDG_RUNTIME_DIR=/run/user/{{ streamin_uid }} systemctl --user status sunshine.service
+          - View logs: sudo -u {{ sunshine_user }} XDG_RUNTIME_DIR=/run/user/{{ streamin_uid }} journalctl --user -u sunshine.service -f
+          - Restart: sudo -u {{ sunshine_user }} XDG_RUNTIME_DIR=/run/user/{{ streamin_uid }} systemctl --user restart sunshine.service
+          - Check mDNS: avahi-browse -a -r -p
+  tags:
+      - sunshine

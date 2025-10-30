@@ -1,0 +1,21 @@
+---
+# Meta information for aur-helper role
+
+galaxy_info:
+  author: StreaminOS Team
+  description: Installs yay (AUR helper) for Arch Linux
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: Archlinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - arch
+    - aur
+    - yay
+    - package-manager
+
+dependencies: []

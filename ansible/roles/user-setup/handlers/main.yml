@@ -1,0 +1,6 @@
+---
+# Handlers for user-setup role
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes

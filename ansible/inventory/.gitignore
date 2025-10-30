@@ -1,0 +1,7 @@
+# Ignore production inventory files with sensitive data (IPs, usernames, etc.)
+production.yml
+local.yml
+
+# Keep example files
+!*.example
+!hosts.yml.example

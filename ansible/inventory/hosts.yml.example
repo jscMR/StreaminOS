@@ -1,0 +1,36 @@
+---
+# Example inventory for localhost installation
+# Copy this to hosts.yml and adjust for your local setup
+
+all:
+  children:
+    streamin_servers:
+      hosts:
+        localhost:
+          # Local connection (no SSH needed)
+          ansible_connection: local
+          ansible_python_interpreter: /usr/bin/python3
+
+      vars:
+        # ====================================================================
+        # User Strategy for Localhost Installation
+        # ====================================================================
+        # For localhost installations, StreaminOS still uses a dedicated
+        # 'streaminos' user for running services, separate from your
+        # personal user account.
+        #
+        # If you're testing on localhost and want to use your current user
+        # instead, you can override these variables, but this is NOT
+        # recommended for production use.
+        # ====================================================================
+
+        # Service user configuration
+        streamin_user: streaminos
+        streamin_home: /home/streaminos
+        streamin_uid: 1100
+        streamin_gid: 1100
+
+        # For quick testing with your current user (NOT RECOMMENDED):
+        # Uncomment these lines and comment out the above
+        # streamin_user: "{{ ansible_user_id }}"
+        # streamin_home: "{{ ansible_env.HOME }}"

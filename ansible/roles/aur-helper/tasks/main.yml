@@ -1,0 +1,101 @@
+---
+# Main tasks for aur-helper role
+
+- name: Check if yay is already installed
+  command: which yay
+  register: yay_check
+  changed_when: false
+  failed_when: false
+  tags:
+      - aur-helper
+      - packages
+
+- name: Display yay status if already installed
+  debug:
+      msg: "yay is already installed at {{ yay_check.stdout }}"
+  when: yay_check.rc == 0
+  tags:
+      - aur-helper
+      - packages
+
+- name: Install yay dependencies
+  pacman:
+      name: "{{ yay_dependencies }}"
+      state: present
+  when: yay_check.rc != 0
+  tags:
+      - aur-helper
+      - packages
+
+- name: Create temporary build directory for yay
+  file:
+      path: "{{ aur_helper_build_dir }}"
+      state: directory
+      owner: "{{ aur_helper_user }}"
+      group: "{{ aur_helper_user }}"
+      mode: "0755"
+  when: yay_check.rc != 0
+  tags:
+      - aur-helper
+      - packages
+
+- name: Clone yay-bin repository from AUR
+  become: yes
+  become_user: "{{ aur_helper_user }}"
+  git:
+      repo: "{{ yay_repo_url }}"
+      dest: "{{ aur_helper_build_dir }}"
+      version: master
+      force: yes
+  when: yay_check.rc != 0
+  tags:
+      - aur-helper
+      - packages
+
+- name: Build and install yay using makepkg
+  become: yes
+  become_user: "{{ aur_helper_user }}"
+  command:
+      cmd: makepkg -si --noconfirm --needed
+      chdir: "{{ aur_helper_build_dir }}"
+  when: yay_check.rc != 0
+  register: yay_install
+  changed_when: "'installing yay' in yay_install.stdout"
+  tags:
+      - aur-helper
+      - packages
+
+- name: Clean up build directory
+  file:
+      path: "{{ aur_helper_build_dir }}"
+      state: absent
+  when: yay_check.rc != 0
+  tags:
+      - aur-helper
+      - packages
+
+- name: Verify yay installation
+  command: yay --version
+  register: yay_version
+  changed_when: false
+  tags:
+      - aur-helper
+      - packages
+
+- name: Display yay version
+  debug:
+      msg: |
+          ====================================
+          AUR Helper Installation Complete
+          ====================================
+
+          yay installed successfully
+          Version: {{ yay_version.stdout | default('installed') }}
+
+          You can now install AUR packages using:
+          - yay -S <package-name>
+          - yay -Syu (update all packages including AUR)
+
+          Next roles can now install packages from AUR automatically.
+  tags:
+      - aur-helper

@@ -1,0 +1,75 @@
+---
+# Default variables for sunshine role
+
+# Sunshine package
+sunshine_package: sunshine
+
+# User configuration
+sunshine_user: "{{ streamin_user }}"
+sunshine_home: "{{ streamin_home }}"
+sunshine_config_dir: "{{ streamin_home }}/.config/sunshine"
+
+# mDNS/Avahi configuration for autodiscovery
+# These packages enable Moonlight clients to automatically discover the Sunshine server on the local network
+sunshine_enable_mdns: true
+sunshine_mdns_packages:
+    - avahi # mDNS daemon for service discovery
+    - nss-mdns # Name Service Switch plugin for .local domain resolution
+
+# Network configuration (based on Sunshine defaults)
+# TCP Ports:
+# - 47984: HTTPS streaming port
+# - 47985: Web UI configuration interface
+# - 47989: HTTP streaming port
+# - 48010: Control port
+# UDP Ports:
+# - 5353: mDNS/Avahi service discovery (for autodiscovery by Moonlight clients)
+# - 47998-48002: Video/audio streaming (activated when client connects)
+# - 48010: Control (activated when client connects)
+sunshine_port: 47989
+sunshine_https_port: 47984
+sunshine_web_ui_port: 47985
+sunshine_rtsp_port: 48010
+
+# Encoder configuration for AMD GPU
+# NOTE: Using software encoding due to Mesa 25.2.5 VAAPI bug causing stride artifacts
+# See: https://github.com/LizardByte/Sunshine/issues/4314
+# TODO: Test VAAPI again when Mesa 25.3+ or downgrade to Mesa 24.x
+sunshine_encoder: software # software encoding works perfectly (uses CPU)
+# sunshine_encoder: vaapi # Uncomment when VAAPI bug is fixed
+sunshine_adapter: /dev/dri/renderD128 # AMD render node (not used with software encoding)
+
+# Video configuration
+sunshine_fps: 60
+sunshine_bitrate: 80000 # 80 Mbps for 4K streaming on LAN
+# NOTE: Using h264 instead of hevc due to stride/pitch bug in AMD VAAPI HEVC encoder
+# See: https://github.com/LizardByte/Sunshine/issues/4314
+sunshine_codec: h264 # h264 works correctly, hevc has artifacts with AMD VA-API
+
+# Video quality settings
+sunshine_qp: 18 # Quality Parameter (lower = better, 18 = very high quality)
+sunshine_vbr_mode: 1 # 1 = VBR (variable bitrate) works better with VAAPI
+
+# Resolution and display settings
+sunshine_default_resolution: "3840x2160" # 4K
+sunshine_default_fps: 120 # Target FPS for high refresh rate displays
+
+# Audio configuration
+sunshine_audio_sink: auto
+
+# Wayland/Sway configuration
+sunshine_display: wayland-1
+sunshine_capture_method: wlr # wlroots (Sway uses this)
+
+# Performance settings
+sunshine_sw_preset: medium # Encoder preset: ultrafast, superfast, veryfast, faster, fast, medium, slow
+sunshine_min_threads: 4 # Encoding threads
+sunshine_min_fps: 10
+
+# Security
+sunshine_require_pin: true
+sunshine_channels: 5 # Number of simultaneous clients
+
+# Service configuration
+sunshine_restart_on_failure: true
+sunshine_restart_sec: 10

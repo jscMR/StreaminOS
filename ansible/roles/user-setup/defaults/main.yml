@@ -1,0 +1,69 @@
+---
+# Default variables for user-setup role
+
+# StreaminOS service user configuration
+streaminos_user: streaminos
+streaminos_uid: 1100 # Fixed UID for consistency across reinstalls
+streaminos_group: streaminos
+streaminos_gid: 1100 # Fixed GID for consistency
+streaminos_home: /home/streaminos
+streaminos_shell: /bin/bash
+streaminos_comment: "StreaminOS Game Streaming Service User"
+
+# Additional groups for hardware access and capabilities
+streaminos_groups:
+    - video # GPU access
+    - render # Hardware rendering
+    - input # Input devices (controllers, keyboard, mouse)
+    - audio # Audio devices for streaming
+    - wheel # Optional: for limited sudo if needed
+
+# User configuration
+streaminos_create_home: true
+streaminos_system_user: false # Regular user, not system user
+
+# SSH configuration
+streaminos_ssh_enabled: false # Security: no direct SSH login by default
+streaminos_password_login: false # No password login
+
+# Autologin configuration (for running Sway on boot)
+streaminos_autologin_enabled: true
+streaminos_autologin_tty: tty1
+
+# Sudo configuration (optional, disabled by default for security)
+streaminos_sudo_enabled: false
+streaminos_sudo_commands: [] # List of specific commands if sudo is needed
+# Example: ['/usr/bin/systemctl restart sunshine']
+
+# XDG Base Directory specification
+streaminos_xdg_config_home: "{{ streaminos_home }}/.config"
+streaminos_xdg_data_home: "{{ streaminos_home }}/.local/share"
+streaminos_xdg_cache_home: "{{ streaminos_home }}/.cache"
+streaminos_xdg_state_home: "{{ streaminos_home }}/.local/state"
+
+# Configuration directories to create
+streaminos_config_dirs:
+    - "{{ streaminos_xdg_config_home }}/sway"
+    - "{{ streaminos_xdg_config_home }}/sunshine"
+    - "{{ streaminos_xdg_config_home }}/systemd/user"
+    - "{{ streaminos_xdg_data_home }}/Steam"
+    - "{{ streaminos_xdg_cache_home }}"
+    - "{{ streaminos_xdg_state_home }}"
+
+# Environment variables for the user
+streaminos_environment:
+    XDG_CONFIG_HOME: "{{ streaminos_xdg_config_home }}"
+    XDG_DATA_HOME: "{{ streaminos_xdg_data_home }}"
+    XDG_CACHE_HOME: "{{ streaminos_xdg_cache_home }}"
+    XDG_STATE_HOME: "{{ streaminos_xdg_state_home }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ streaminos_uid }}"
+    WAYLAND_DISPLAY: wayland-1
+    MOZ_ENABLE_WAYLAND: "1"
+
+# wlroots Headless Backend Configuration
+# Based on wlroots official documentation and real-world implementations
+wlr_backends: "headless" # Pure headless backend with EGL framebuffer
+wlr_renderer: "gles2" # GLES2 is most stable for AMD + headless
+wlr_libinput_no_devices: "1" # Disable physical device detection
+wlr_renderer_allow_software: "1" # Allow software rendering fallback
+headless_outputs_count: 1 # Set to 1 to avoid framebuffer concat issues

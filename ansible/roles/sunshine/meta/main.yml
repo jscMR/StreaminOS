@@ -1,0 +1,21 @@
+---
+# Role metadata for sunshine
+dependencies:
+    - role: user-setup
+    - role: aur-helper
+
+galaxy_info:
+    author: StreaminOS
+    description: Installs and configures Sunshine game streaming server for Wayland/AMD
+    license: MIT
+    min_ansible_version: "2.9"
+    platforms:
+        - name: ArchLinux
+          versions:
+              - all
+
+    galaxy_tags:
+        - streaming
+        - gaming
+        - sunshine
+        - wayland

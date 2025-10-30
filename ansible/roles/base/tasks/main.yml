@@ -34,40 +34,38 @@
     mode: '0755'
   tags: sway
 
-- name: Create basic Sway configuration
-  copy:
+- name: Create Sway configuration from template
+  template:
+    src: sway-config.j2
     dest: "{{ streamin_home }}/.config/sway/config"
-    content: |
-      # StreaminOS Sway Config
-      # Minimalist configuration for streaming server
-
-      # Mod key (Mod4 = Super/Windows key)
-      set $mod Mod4
-
-      # Terminal
-      set $term foot
-
-      # Basic keybindings
-      bindsym $mod+Return exec $term
-      bindsym $mod+Shift+q kill
-      bindsym $mod+Shift+c reload
-      bindsym $mod+Shift+e exit
-
-      # Outputs (for virtual displays)
-      output * bg #000000 solid_color
-
-      # No gaps, no borders (headless server)
-      default_border none
-      default_floating_border none
-      gaps inner 0
-      gaps outer 0
-
-      # Idle configuration (disabled for streaming)
-      # exec swayidle -w
     owner: "{{ streamin_user }}"
+    group: "{{ streamin_user }}"
     mode: '0644'
-    force: no
+    force: yes
+    backup: yes
   tags: sway
+  
+- name: Create StreaminOS scripts directory
+  file:
+    path: /opt/streamin-scripts
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: base
+
+- name: Install display management scripts
+  copy:
+    src: "{{ item }}"
+    dest: /opt/streamin-scripts/{{ item }}
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - list_displays.sh
+    - set_resolution.sh
+    - restart_sway.sh
+  tags: base
 
 - name: Verify Sway installation
   command: sway --version

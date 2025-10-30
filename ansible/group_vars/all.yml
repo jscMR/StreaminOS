@@ -1,44 +1,159 @@
 ---
 # Global variables for StreaminOS
 
-# Base system
-arch_packages:
-  - base
-  - base-devel
-  - git
-  - dhcpcd
-  - sway
-  - wayland
-  - xorg-xwayland
-  - polkit
-  - mesa
-  - vulkan-radeon
-  - lib32-vulkan-radeon
+# ============================================================================
+# User Configuration
+# ============================================================================
+# StreaminOS uses a dedicated service user for running all streaming services
+# This separates administrative access (ansible_user) from service execution
 
-# AUR helper
+# Service user (runs Sway, Sunshine, Steam, etc.)
+streamin_user: streaminos
+streamin_uid: 1100
+streamin_group: streaminos
+streamin_gid: 1100
+streamin_home: /home/streaminos
+
+# Administrative user (for SSH, Ansible deployment)
+# This is set in inventory per-host, typically your personal user
+# ansible_user: noid  # Set in inventory, not here
+
+# ============================================================================
+# Base System Packages
+# ============================================================================
+arch_packages:
+    - base
+    - base-devel
+    - git
+    - dhcpcd
+    - sway
+    - wayland
+    - xorg-xwayland
+    - polkit
+    - mesa
+    - vulkan-radeon
+    - lib32-vulkan-radeon
+
+# Additional system utilities
+system_utilities:
+    - htop
+    - tmux
+    - vim
+    - wget
+    - curl
+    - openssh
+
+# ============================================================================
+# AUR Helper
+# ============================================================================
 aur_helper: yay
 
-# GPU
+# ============================================================================
+# GPU Configuration
+# ============================================================================
 gpu_vendor: amd
 gpu_model: rx7900gre
 
-# Sunshine
+# GPU-specific packages
+amd_gpu_packages:
+    - mesa
+    - vulkan-radeon
+    - lib32-vulkan-radeon
+    - libva-mesa-driver
+    - lib32-libva-mesa-driver
+    - mesa-vdpau
+    - lib32-mesa-vdpau
+
+# ============================================================================
+# Sunshine (Game Streaming Server)
+# ============================================================================
 sunshine_port: 47989
+sunshine_https_port: 47984
 sunshine_config_dir: "{{ streamin_home }}/.config/sunshine"
+sunshine_log_dir: "{{ streamin_home }}/.local/share/sunshine/logs"
+sunshine_user: "{{ streamin_user }}"
 
-# Steam
+# ============================================================================
+# Steam Configuration
+# ============================================================================
 steam_library_paths:
-  - "{{ streamin_home }}/.local/share/Steam/steamapps"
+    - "{{ streamin_home }}/.local/share/Steam/steamapps"
+steam_user: "{{ streamin_user }}"
+steam_home: "{{ streamin_home }}"
 
-# Virtual Display
-evdi_displays_max: 4
-virtual_display_resolution: "1920x1080"
+# ============================================================================
+# Virtual Displays (wlroots Headless Backend)
+# ============================================================================
+# Native wlroots solution
+# Creates virtual outputs for headless backend game streaming
 
-# Dashboard
+# Number of headless outputs to create
+# NOTE: Set to 1 to avoid framebuffer concatenation causing stride artifacts
+# Multiple side-by-side displays create a single wide framebuffer that confuses Sunshine
+headless_outputs_count: 1
+
+# Primary display (for 4k streaming)
+headless_primary_resolution: "3840x2160"
+headless_primary_refresh: 120
+
+# Secondary display (for 1080p streaming)
+headless_secondary_resolution: "1920x1080"
+headless_secondary_refresh: 120
+
+# WLR backend configuration
+# Based on wlroots documentation and real-world streaming setups
+wlr_backends: "headless" # Pure headless with EGL framebuffer
+wlr_renderer: "gles2" # Most stable renderer for AMD + headless
+wlr_libinput_no_devices: "1" # Disable physical input detection
+wlr_renderer_allow_software: "1" # Allow software rendering fallback
+
+# ============================================================================
+# Dashboard (Web Administration UI)
+# ============================================================================
 dashboard_port: 8080
 dashboard_install_dir: /opt/streamin-dashboard
+dashboard_user: "{{ streamin_user }}"
 
-# Services
+# ============================================================================
+# Services Directories
+# ============================================================================
 services_dir: /opt/streamin-services
 systemd_user_dir: "{{ streamin_home }}/.config/systemd/user"
 systemd_system_dir: /etc/systemd/system
+
+# ============================================================================
+# XDG Base Directory Specification
+# ============================================================================
+xdg_config_home: "{{ streamin_home }}/.config"
+xdg_data_home: "{{ streamin_home }}/.local/share"
+xdg_cache_home: "{{ streamin_home }}/.cache"
+xdg_state_home: "{{ streamin_home }}/.local/state"
+
+# ============================================================================
+# Network Configuration
+# ============================================================================
+# Ports used by StreaminOS services
+streamin_ports:
+    sunshine_http: 47989
+    sunshine_https: 47984
+    sunshine_web: 47990
+    sunshine_rtsp: 48010
+    dashboard: 8080
+
+# ============================================================================
+# Security Configuration
+# ============================================================================
+# Whether to enable firewall rules (recommended for production)
+firewall_enabled: false # Set to true and configure firewalld/ufw
+
+# ============================================================================
+# Performance Tuning
+# ============================================================================
+# Real-time scheduling priorities
+rtprio_limit: 95
+nice_limit: -19
+
+# Memory and file descriptor limits
+memlock_limit: unlimited
+nofile_limit: 524288
+nproc_limit: unlimited

@@ -1,0 +1,39 @@
+[Unit]
+Description=Sway Wayland Compositor
+Documentation=man:sway(5)
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/sway
+Restart=on-failure
+RestartSec=5
+
+# Environment
+Environment=XDG_CONFIG_HOME={{ streaminos_xdg_config_home }}
+Environment=XDG_DATA_HOME={{ streaminos_xdg_data_home }}
+Environment=XDG_CACHE_HOME={{ streaminos_xdg_cache_home }}
+Environment=XDG_STATE_HOME={{ streaminos_xdg_state_home }}
+
+# Wayland
+Environment=MOZ_ENABLE_WAYLAND=1
+Environment=QT_QPA_PLATFORM=wayland
+Environment=GDK_BACKEND=wayland
+Environment=SDL_VIDEODRIVER=wayland
+
+# AMD GPU
+Environment=RADV_PERFTEST=aco
+Environment=mesa_glthread=true
+
+# wlroots Headless Backend (for virtual displays)
+# Based on official wlroots documentation for headless streaming
+Environment=WLR_BACKENDS={{ wlr_backends }}
+Environment=WLR_RENDERER={{ wlr_renderer }}
+Environment=WLR_HEADLESS_OUTPUTS={{ headless_outputs_count }}
+Environment=WLR_LIBINPUT_NO_DEVICES={{ wlr_libinput_no_devices }}
+Environment=WLR_RENDERER_ALLOW_SOFTWARE={{ wlr_renderer_allow_software }}
+
+[Install]
+WantedBy=graphical-session.target
