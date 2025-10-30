@@ -37,9 +37,10 @@ sunshine_apps:
     - name: "Steam Big Picture"
       description: "Steam Big Picture Mode - Your gaming library"
       image_path: ""
-      command: "/home/{{ streamin_user }}/.local/bin/launch-steam.sh -bigpicture"
+      command: "/home/{{ streamin_user }}/.local/bin/launch-gamescope-steam.sh"
       auto_detach: true # Clean session handling when stream ends
       detached: []
+      exclude_global_prep_cmd: false # Use Sunshine environment variables for resolution
 
 # Steam first-time setup
 steam_create_config_dirs: true
