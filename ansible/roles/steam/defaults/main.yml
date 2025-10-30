@@ -41,14 +41,14 @@ sunshine_apps:
     - name: "Steam"
       description: "Steam Client (launch to login or browse library)"
       image_path: ""
-      command: "/usr/bin/steam"
+      command: "/home/{{ streamin_user }}/.local/bin/launch-steam.sh"
       auto_detach: false # Kill Steam when stream ends (if no game running)
       detached: []
 
     - name: "Steam Big Picture"
       description: "Steam Big Picture Mode"
       image_path: ""
-      command: "/usr/bin/steam -bigpicture"
+      command: "/home/{{ streamin_user }}/.local/bin/launch-steam.sh -bigpicture"
       auto_detach: false # Kill Big Picture when stream ends
       detached: []
 
