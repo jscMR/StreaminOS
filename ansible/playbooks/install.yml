@@ -69,13 +69,6 @@
             - network
             - power
 
-      # Steam Monitor - Auto-register games in Sunshine
-      - role: steam-monitor
-        tags:
-            - steam-monitor
-            - services
-            - games
-
       # The following roles will be implemented progressively
       #
       # - role: amdgpu
@@ -112,7 +105,7 @@
 
                 ✓ Gaming components:
                   - Steam (game client and library)
-                  - Sunshine apps configured (Desktop, Steam, Big Picture)
+                  - Sunshine app configured: Steam Big Picture only
 
                 ✓ Configuration locations:
                   - Sway: {{ streamin_home }}/.config/sway/config
@@ -125,9 +118,9 @@
                 Next steps:
                 1. Connect to StreaminOS using Moonlight client
                    - Auto-discover "streaminos" or connect to {{ ansible_host }}
-                2. Launch "Desktop" or "Steam" app in Moonlight
+                2. Launch "Steam Big Picture" in Moonlight
                 3. Login to Steam to access your game library
-                4. Your games will appear in Sunshine for streaming
+                4. Manage additional apps via Sunshine web UI if needed
                 5. Install additional components with tags:
                    - AMD GPU:   ansible-playbook install.yml --tags amdgpu
                    - Dashboard: ansible-playbook install.yml --tags dashboard
