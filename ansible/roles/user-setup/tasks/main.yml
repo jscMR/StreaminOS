@@ -83,7 +83,7 @@
       - user-setup
       - shell
 
-- name: Configure bashrc for streaminos with Sway auto-start
+- name: Configure bashrc for streaminos
   template:
       src: bashrc.j2
       dest: "{{ streaminos_home }}/.bashrc"
@@ -165,30 +165,8 @@
       - user-setup
       - performance
 
-- name: Create Sway systemd user service
-  template:
-      src: sway.service.j2
-      dest: "{{ streaminos_home }}/.config/systemd/user/sway.service"
-      owner: "{{ streaminos_user }}"
-      group: "{{ streaminos_group }}"
-      mode: "0644"
-  tags:
-      - user-setup
-      - sway
-
-- name: Enable Sway service for streaminos user
-  become: yes
-  become_user: "{{ streaminos_user }}"
-  systemd:
-      name: sway.service
-      enabled: yes
-      scope: user
-      daemon_reload: yes
-  environment:
-      XDG_RUNTIME_DIR: "/run/user/{{ streaminos_uid }}"
-  tags:
-      - user-setup
-      - sway
+# Sway service removed - gamescope is launched on-demand by Sunshine
+# No persistent compositor service needed for headless streaming
 
 - name: Verify user creation
   command: id {{ streaminos_user }}
