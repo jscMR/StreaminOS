@@ -84,3 +84,4 @@ core.*
 *.crt
 credentials.json
 secrets/
+*.png
