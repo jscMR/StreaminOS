@@ -1,0 +1,175 @@
+---
+# Tasks for steam-monitor role
+
+- name: Install system packages for Steam Monitor
+  pacman:
+    name: "{{ steam_monitor_packages }}"
+    state: present
+  become: yes
+  tags:
+    - steam-monitor
+    - packages
+
+- name: Create required directories for Steam Monitor
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ streamin_user }}"
+    group: "{{ streamin_user }}"
+    mode: '0755'
+  become: yes
+  loop:
+    - "{{ steam_monitor_script_path | dirname }}"
+    - "{{ steam_monitor_covers_dir }}"
+    - "{{ steam_monitor_state_file | dirname }}"
+  tags:
+    - steam-monitor
+    - directories
+
+- name: Install Python packages for Steam Monitor
+  pip:
+    name: "{{ steam_monitor_pip_packages }}"
+    state: present
+    extra_args: "--user"
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+    HOME: "{{ streamin_home }}"
+  tags:
+    - steam-monitor
+    - packages
+    - python
+
+- name: Copy Steam Monitor script
+  copy:
+    src: steam_monitor.py
+    dest: "{{ steam_monitor_script_path }}"
+    owner: "{{ streamin_user }}"
+    group: "{{ streamin_user }}"
+    mode: '0755'
+  become: yes
+  notify: restart steam-monitor
+  tags:
+    - steam-monitor
+    - scripts
+
+- name: Create Steam Monitor systemd service
+  template:
+    src: steam-monitor.service.j2
+    dest: "{{ streamin_home }}/.config/systemd/user/steam-monitor.service"
+    owner: "{{ streamin_user }}"
+    group: "{{ streamin_user }}"
+    mode: '0644'
+  become: yes
+  notify: reload systemd-user
+  tags:
+    - steam-monitor
+    - systemd
+
+- name: Enable and start Steam Monitor service
+  systemd:
+    name: steam-monitor.service
+    enabled: yes
+    state: started
+    scope: user
+    daemon_reload: yes
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+  when: steam_monitor_enable
+  tags:
+    - steam-monitor
+    - systemd
+
+- name: Check Steam Monitor service status
+  shell: "systemctl --user status steam-monitor.service"
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+  register: steam_monitor_status
+  changed_when: false
+  failed_when: false
+  tags:
+    - steam-monitor
+    - systemd
+
+- name: Display Steam Monitor setup information
+  debug:
+    msg: |
+      ====================================
+      Steam Monitor Configuration Complete
+      ====================================
+
+      Service: steam-monitor.service
+      User: {{ streamin_user }}
+      Status: {{ 'Running' if steam_monitor_status.rc == 0 else 'Stopped/Failed' }}
+
+      Configuration:
+      - Script: {{ steam_monitor_script_path }}
+      - Steam library: {{ steam_library_path }}
+      - Sunshine apps: {{ sunshine_apps_file }}
+      - Covers directory: {{ steam_monitor_covers_dir }}
+      - State file: {{ steam_monitor_state_file }}
+
+      Filtering:
+      - Exclude tools: {{ steam_monitor_exclude_tools }}
+      - Exclude DLC: {{ steam_monitor_exclude_dlc }}
+      - Exclude demos: {{ steam_monitor_exclude_demos }}
+      - Minimum size: {{ steam_monitor_min_size_mb }}MB
+      - Remove uninstalled: {{ steam_monitor_remove_uninstalled }}
+
+      Cover Format: {{ steam_monitor_cover_format }} (600x900)
+
+      How it works:
+      ────────────────────────────────────────
+      1. Monitors Steam library with inotify (real-time)
+      2. Detects when you install/uninstall games
+      3. Filters out tools, DLCs, Proton, etc.
+      4. Downloads cover art from Steam CDN
+      5. Adds game to Sunshine apps.json automatically
+      6. Reloads Sunshine to apply changes
+      7. Game appears in Moonlight instantly!
+
+      Useful Commands:
+      ────────────────────────────────────────
+      View logs:
+        journalctl --user -u steam-monitor.service -f
+
+      Check status:
+        systemctl --user status steam-monitor.service
+
+      Restart (force re-scan):
+        systemctl --user restart steam-monitor.service
+
+      View detected games:
+        cat {{ steam_monitor_state_file }} | jq .known_games
+
+      View covers downloaded:
+        ls -lh {{ steam_monitor_covers_dir }}/
+
+      Disable temporarily:
+        systemctl --user stop steam-monitor.service
+
+      Re-enable:
+        systemctl --user start steam-monitor.service
+
+      Next Steps:
+      ────────────────────────────────────────
+      1. Install a game from Steam
+      2. Wait ~10 seconds for detection
+      3. Open Moonlight - game appears automatically!
+      4. Check logs to see the magic happen:
+         journalctl --user -u steam-monitor.service -f
+
+      Troubleshooting:
+      ────────────────────────────────────────
+      If games don't appear:
+      - Check service is running: systemctl --user status steam-monitor.service
+      - View logs for errors: journalctl --user -u steam-monitor.service -n 50
+      - Verify Steam library path exists: ls {{ steam_library_path }}
+      - Check Sunshine apps.json: cat {{ sunshine_apps_file }} | jq
+      - Force re-scan: systemctl --user restart steam-monitor.service
+  tags:
+    - steam-monitor

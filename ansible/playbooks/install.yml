@@ -69,12 +69,14 @@
             - network
             - power
 
+      # Steam Monitor - Auto-register games in Sunshine
+      - role: steam-monitor
+        tags:
+            - steam-monitor
+            - services
+            - games
+
       # The following roles will be implemented progressively
-      #
-      # - role: steam-monitor
-      #   tags:
-      #     - steam-monitor
-      #     - services
       #
       # - role: amdgpu
       #   tags:

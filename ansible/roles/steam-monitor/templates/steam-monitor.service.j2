@@ -1,0 +1,41 @@
+# systemd user service for Steam Monitor
+# Managed by Ansible - StreaminOS steam-monitor role
+#
+# This service monitors the Steam library and automatically registers
+# new games in Sunshine for streaming to Moonlight clients.
+
+[Unit]
+Description=Steam Game Monitor for Sunshine
+Documentation=https://github.com/yourorg/StreaminOS
+After=sunshine.service
+Wants=sunshine.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 {{ steam_monitor_script_path }}
+Restart={{ steam_monitor_service_restart }}
+RestartSec={{ steam_monitor_service_restart_sec }}
+
+# Environment variables
+Environment="STEAM_LIBRARY_PATH={{ steam_library_path }}"
+Environment="SUNSHINE_APPS_FILE={{ sunshine_apps_file }}"
+Environment="COVERS_DIR={{ steam_monitor_covers_dir }}"
+Environment="STATE_FILE={{ steam_monitor_state_file }}"
+Environment="STEAM_API_TIMEOUT={{ steam_api_timeout }}"
+Environment="STEAM_API_RATE_LIMIT_MS={{ steam_api_rate_limit_ms }}"
+Environment="EXCLUDE_TOOLS={{ steam_monitor_exclude_tools | lower }}"
+Environment="EXCLUDE_DLC={{ steam_monitor_exclude_dlc | lower }}"
+Environment="MIN_SIZE_MB={{ steam_monitor_min_size_mb }}"
+Environment="REMOVE_UNINSTALLED={{ steam_monitor_remove_uninstalled | lower }}"
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=steam-monitor
+
+[Install]
+WantedBy=default.target

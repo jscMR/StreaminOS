@@ -1,0 +1,20 @@
+---
+# Handlers for steam-monitor role
+
+- name: reload systemd-user
+  shell: "systemctl --user daemon-reload"
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+
+- name: restart steam-monitor
+  systemd:
+    name: steam-monitor.service
+    state: restarted
+    scope: user
+  become: yes
+  become_user: "{{ streamin_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ streamin_uid }}"
+  when: steam_monitor_enable

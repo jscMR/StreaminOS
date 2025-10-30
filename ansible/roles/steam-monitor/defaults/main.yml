@@ -1,0 +1,75 @@
+---
+# Default variables for steam-monitor role
+
+# Steam Monitor configuration
+steam_monitor_enable: true                    # Enable/disable the monitor service
+steam_monitor_watch_realtime: true           # Use inotify for real-time detection
+steam_monitor_remove_uninstalled: true       # Auto-remove games when uninstalled
+steam_monitor_check_interval: 300            # Polling interval (seconds) if inotify fails
+
+# Filtering options
+steam_monitor_exclude_tools: true            # Exclude tools (Proton, SteamVR Tools, etc.)
+steam_monitor_exclude_dlc: true              # Exclude DLCs
+steam_monitor_exclude_demos: false           # Exclude demo versions
+steam_monitor_min_size_mb: 50               # Minimum game size in MB (exclude small tools)
+
+# Cover art configuration
+steam_monitor_cover_format: "portrait"       # portrait (600x900) or header (460x215)
+steam_monitor_covers_dir: "{{ streamin_home }}/.local/share/sunshine/covers"
+steam_monitor_placeholder_cover: ""          # Path to placeholder image (empty = no placeholder)
+
+# Paths
+steam_monitor_script_path: "{{ streamin_home }}/.local/bin/steam_monitor.py"
+steam_monitor_state_file: "{{ streamin_home }}/.local/state/steam_monitor_state.json"
+steam_library_path: "{{ streamin_home }}/.local/share/Steam/steamapps"
+
+# Sunshine integration
+sunshine_config_dir: "{{ streamin_home }}/.config/sunshine"
+sunshine_apps_file: "{{ sunshine_config_dir }}/apps.json"
+sunshine_reload_method: "systemctl"          # "systemctl" or "signal"
+sunshine_service_name: "sunshine.service"
+
+# Steam API configuration
+steam_api_base_url: "https://store.steampowered.com/api"
+steam_api_timeout: 10                        # Seconds
+steam_api_rate_limit_ms: 200                 # Milliseconds between API calls
+steam_api_retry_attempts: 3
+steam_api_retry_backoff: 2                   # Exponential backoff multiplier
+
+# Cover download configuration
+steam_cover_download_timeout: 30             # Seconds
+steam_cover_urls:
+  portrait:
+    - "https://steamcdn-a.akamaihd.net/steam/apps/{appid}/library_600x900_2x.jpg"
+    - "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg"
+    - "https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/library_600x900.jpg"
+  header:
+    - "https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg"
+    - "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg"
+
+# System packages
+steam_monitor_packages:
+  - python
+  - python-requests                          # HTTP library for Steam API
+  - python-pip                               # Package installer for Python
+
+# Python packages (installed via pip as streaminos user)
+steam_monitor_pip_packages:
+  - vdf                                      # Valve Data Format parser
+  - inotify-simple                          # Simple inotify wrapper
+
+# Logging
+steam_monitor_log_level: "INFO"             # DEBUG, INFO, WARNING, ERROR
+steam_monitor_log_to_journal: true          # Log to systemd journal
+
+# Excluded patterns (regex)
+steam_monitor_exclude_patterns:
+  - '^Proton.*'
+  - '^SteamLinuxRuntime.*'
+  - '^Steam.*Tools'
+  - '^Steamworks Common.*'
+  - '^Steamworks SDK.*'
+
+# Service configuration
+steam_monitor_service_restart: "on-failure"
+steam_monitor_service_restart_sec: 10

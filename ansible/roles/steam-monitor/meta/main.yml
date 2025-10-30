@@ -1,0 +1,27 @@
+---
+# Meta information for steam-monitor role
+
+galaxy_info:
+  author: StreaminOS
+  description: Automatically detect and register Steam games in Sunshine for streaming
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: ArchLinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - gaming
+    - steam
+    - streaming
+    - sunshine
+    - moonlight
+    - automation
+
+dependencies:
+  - role: steam
+    # Steam monitor requires Steam to be installed first
+  - role: sunshine
+    # Steam monitor requires Sunshine to be configured
