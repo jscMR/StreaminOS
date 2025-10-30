@@ -1,0 +1,23 @@
+#!/bin/bash
+# Steam autostart script for StreaminOS
+# This script can be used to start Steam automatically with Sway
+# Currently disabled by default - Steam should be launched via Sunshine
+
+# Set environment
+export XDG_RUNTIME_DIR=/run/user/{{ streaminos_uid }}
+export WAYLAND_DISPLAY=wayland-1
+
+# Check if Steam is already running
+if pgrep -x "steam" > /dev/null; then
+    echo "Steam is already running"
+    exit 0
+fi
+
+# Start Steam in silent mode (no UI popup)
+echo "Starting Steam..."
+steam {{ steam_launch_options }} &
+
+# Wait a bit for Steam to initialize
+sleep 5
+
+echo "Steam started"

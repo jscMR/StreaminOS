@@ -1,0 +1,17 @@
+---
+# Handlers for steam role
+
+- name: restart sunshine
+  become: yes
+  become_user: "{{ steam_user }}"
+  systemd:
+    name: sunshine.service
+    state: restarted
+    scope: user
+    daemon_reload: yes
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ streaminos_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ streaminos_uid }}/bus"
+  tags:
+    - steam
+    - sunshine

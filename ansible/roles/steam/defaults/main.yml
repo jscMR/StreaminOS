@@ -1,0 +1,57 @@
+---
+# Default variables for steam role
+
+# Steam installation
+steam_user: "{{ streamin_user }}"
+steam_home: "{{ streamin_home }}"
+steam_config_dir: "{{ streamin_home }}/.local/share/Steam"
+steam_library_dir: "{{ streamin_home }}/.local/share/Steam/steamapps/common"
+
+# Steam runtime and dependencies
+steam_packages:
+    - steam
+    - lib32-mesa
+    - lib32-vulkan-radeon # AMD GPU support
+    - lib32-vulkan-icd-loader
+    - lib32-libva
+    - lib32-libva-mesa-driver
+
+# Steam launch options
+steam_launch_options: "-silent -console" # Silent mode for headless
+steam_enable_steam_play: true # Enable Proton for Windows games
+steam_enable_shader_precache: true # Shader pre-caching
+
+# Sunshine integration
+sunshine_config_dir: "{{ streamin_home }}/.config/sunshine"
+sunshine_apps_file: "{{ sunshine_config_dir }}/apps.json"
+
+# Sunshine applications to create
+# prep_cmd with dynamic resolution change based on client request
+sunshine_resolution_script: "/home/{{ streamin_user }}/.local/bin/set-streaming-resolution.sh"
+sunshine_default_resolution: "1920x1080@60"
+
+sunshine_apps:
+    - name: "Desktop"
+      description: "StreaminOS Desktop Environment (for Steam login and management)"
+      image_path: ""
+      command: "/usr/bin/foot"
+      auto_detach: false # Kill terminal when stream ends
+      detached: []
+
+    - name: "Steam"
+      description: "Steam Client (launch to login or browse library)"
+      image_path: ""
+      command: "/usr/bin/steam"
+      auto_detach: false # Kill Steam when stream ends (if no game running)
+      detached: []
+
+    - name: "Steam Big Picture"
+      description: "Steam Big Picture Mode"
+      image_path: ""
+      command: "/usr/bin/steam -bigpicture"
+      auto_detach: false # Kill Big Picture when stream ends
+      detached: []
+
+# Steam first-time setup
+steam_create_config_dirs: true
+steam_accept_license: false # User must accept manually on first login

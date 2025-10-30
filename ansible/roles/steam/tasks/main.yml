@@ -1,0 +1,158 @@
+---
+# Main tasks for steam role
+
+- name: Install Steam and dependencies
+  community.general.pacman:
+      name: "{{ steam_packages }}"
+      state: present
+      update_cache: no
+  tags:
+      - steam
+      - packages
+
+- name: Create Steam configuration directories
+  file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ steam_user }}"
+      group: "{{ steam_user }}"
+      mode: "0755"
+  loop:
+      - "{{ steam_config_dir }}"
+      - "{{ steam_library_dir }}"
+      - "{{ sunshine_config_dir }}"
+      - "{{ steam_home }}/.local/bin"
+  when: steam_create_config_dirs
+  tags:
+      - steam
+      - directories
+
+- name: Copy dynamic resolution script
+  copy:
+      src: set-streaming-resolution.sh
+      dest: "{{ sunshine_resolution_script }}"
+      owner: "{{ steam_user }}"
+      group: "{{ steam_user }}"
+      mode: "0755"
+  tags:
+      - steam
+      - sunshine
+      - scripts
+
+- name: Check if Sunshine apps.json exists
+  stat:
+      path: "{{ sunshine_apps_file }}"
+  register: sunshine_apps_stat
+  tags:
+      - steam
+      - sunshine
+
+- name: Backup existing Sunshine apps.json if present
+  copy:
+      src: "{{ sunshine_apps_file }}"
+      dest: "{{ sunshine_apps_file }}.backup.{{ ansible_date_time.epoch }}"
+      owner: "{{ steam_user }}"
+      group: "{{ steam_user }}"
+      mode: "0644"
+      remote_src: yes
+  when: sunshine_apps_stat.stat.exists
+  tags:
+      - steam
+      - sunshine
+      - backup
+
+- name: Configure Sunshine applications (Desktop, Steam)
+  template:
+      src: apps.json.j2
+      dest: "{{ sunshine_apps_file }}"
+      owner: "{{ steam_user }}"
+      group: "{{ steam_user }}"
+      mode: "0644"
+  notify: restart sunshine
+  tags:
+      - steam
+      - sunshine
+
+- name: Create Steam autostart script
+  template:
+      src: steam-autostart.sh.j2
+      dest: "{{ steam_home }}/.local/bin/steam-autostart.sh"
+      owner: "{{ steam_user }}"
+      group: "{{ steam_user }}"
+      mode: "0755"
+  tags:
+      - steam
+      - scripts
+
+- name: Ensure .local/bin directory exists
+  file:
+      path: "{{ steam_home }}/.local/bin"
+      state: directory
+      owner: "{{ steam_user }}"
+      group: "{{ steam_user }}"
+      mode: "0755"
+  tags:
+      - steam
+      - directories
+
+- name: Display Steam setup instructions
+  debug:
+      msg: |
+          ========================================
+          Steam Installation Complete
+          ========================================
+
+          Steam has been installed for user: {{ steam_user }}
+
+          IMPORTANT: First-time setup required
+          ────────────────────────────────────────
+          Steam requires authentication before you can access your game library.
+
+          Setup Steps:
+
+          1. Connect to StreaminOS using Moonlight client
+             - Server should auto-discover as "streaminos" or use IP: {{ ansible_host }}
+
+          2. In Moonlight, launch the "Desktop" or "Steam" application
+             - Desktop: Full Sway environment access
+             - Steam: Opens Steam directly
+
+          3. Login to Steam with your credentials
+             - Steam will remember your login for future sessions
+             - Enable "Remember me" checkbox
+
+          4. After login, your games will appear in Sunshine automatically
+             (Steam Monitor service will detect and register games - coming soon)
+
+          Configuration Files:
+          ────────────────────────────────────────
+          - Steam config: {{ steam_config_dir }}
+          - Steam library: {{ steam_library_dir }}
+          - Sunshine apps: {{ sunshine_apps_file }}
+
+          Sunshine Applications Created:
+          ────────────────────────────────────────
+          {% for app in sunshine_apps %}
+          - {{ app.name }}: {{ app.description }}
+          {% endfor %}
+
+          Access Sunshine Web UI:
+          ────────────────────────────────────────
+          - URL: https://{{ ansible_host }}:47985
+          - Or: https://streaminos.local:47985
+
+          Troubleshooting:
+          ────────────────────────────────────────
+          - If Sunshine apps don't appear, restart Sunshine:
+            sudo -u {{ steam_user }} systemctl --user restart sunshine.service
+
+          - Check Sunshine logs:
+            journalctl --user -u sunshine.service -f
+
+          - Verify Steam installation:
+            sudo -u {{ steam_user }} steam --version
+
+          For more info, see: docs/STEAM_SETUP.md
+  tags:
+      - steam
+      - info

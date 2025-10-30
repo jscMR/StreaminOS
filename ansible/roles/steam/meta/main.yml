@@ -1,0 +1,29 @@
+---
+# Metadata for steam role
+
+galaxy_info:
+  role_name: steam
+  author: StreaminOS
+  description: Installs and configures Steam for game streaming via Sunshine
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: ArchLinux
+      versions:
+        - all
+
+  galaxy_tags:
+    - gaming
+    - steam
+    - streaming
+    - sunshine
+
+dependencies:
+  - role: user-setup
+    tags: ["user-setup"]
+  - role: sunshine
+    tags: ["sunshine"]
+
+# Role requires Sunshine to be installed and configured
+# Steam integrates with Sunshine for game streaming

@@ -1,0 +1,18 @@
+{
+  "env": {
+    "PATH": "$(PATH):$(HOME)/.local/bin"
+  },
+  "apps": [
+{% for app in sunshine_apps %}
+    {
+      "name": "{{ app.name }}",
+      "output": "",
+      "cmd": "{{ app.command }}",
+      "exclude-global-prep-cmd": "false",
+      "elevated": "false",
+      "auto-detach": "{{ app.auto_detach | default(false) | lower }}",
+      "image-path": "{{ app.image_path | default('') }}"
+    }{{ "," if not loop.last else "" }}
+{% endfor %}
+  ]
+}
