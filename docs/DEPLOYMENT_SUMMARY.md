@@ -1,8 +1,9 @@
 # StreaminOS Deployment Summary
 
-**Date:** 2025-10-29  
-**Server:** 192.168.0.19  
-**Status:** ✅ Fully operational with software encoding
+**Date:** 2025-10-31
+**Version:** 1.5 (Sway Architecture - Stable)
+**Server:** 192.168.0.19
+**Status:** ✅ Video streaming operational | ⚠️ Audio pending configuration
 
 ## Quick Reference
 
@@ -17,8 +18,9 @@
 - OS: Arch Linux
 - Kernel: 6.17.5-arch1-1
 - Mesa: 25.2.5-2 (VAAPI bug present)
-- Sunshine: v2025.628.4510-1
-- Compositor: Sway (wlroots headless backend)
+- Sunshine: v2025.924.154138
+- Compositor: Sway 1.11 (wlroots headless backend)
+- Capture Method: wlr-screencopy protocol
 
 **Network:**
 - mDNS hostname: `streaminos.local`
@@ -177,14 +179,14 @@ GPU (RX 7900 GRE)  →   Sunshine        →   CPU (software)  →   Network
 
 ## Known Issues and Workarounds
 
-### Mesa 25.2.5 VAAPI Bug
+### 1. Mesa 25.2.5 VAAPI Bug
 
-**Issue:** VAAPI hardware encoding produces stride artifacts (vertical lines, fragmented image)  
-**Cause:** Mesa 25.2.5 VAAPI encoder incorrectly reads stride from wlroots headless RAM framebuffers  
-**Impact:** Cannot use GPU hardware encoding  
-**Workaround:** Software encoding via CPU (libx264/libx265)  
-**Performance:** ~30-40% CPU usage on Ryzen 5 7600X (acceptable)  
-**Quality:** Excellent (software encoding quality superior to VAAPI)  
+**Issue:** VAAPI hardware encoding produces stride artifacts (vertical lines, fragmented image)
+**Cause:** Mesa 25.2.5 VAAPI encoder incorrectly reads stride from wlroots headless RAM framebuffers
+**Impact:** Cannot use GPU hardware encoding
+**Workaround:** Software encoding via CPU (libx264/libx265)
+**Performance:** ~30-40% CPU usage on Ryzen 5 7600X (acceptable)
+**Quality:** Excellent (software encoding quality superior to VAAPI)
 **Documentation:** See `docs/VAAPI_BUG_MESA.md`
 
 **Future resolution:**
@@ -194,6 +196,42 @@ GPU (RX 7900 GRE)  →   Sunshine        →   CPU (software)  →   Network
   ```yaml
   sunshine_encoder: vaapi  # Change from 'software' when bug fixed
   ```
+
+### 2. Audio Not Streaming (PENDING)
+
+**Status:** ⚠️ Critical - Requires investigation
+**Issue:** Audio is not being captured/transmitted during streaming
+**Symptoms:** Video works perfectly, but no audio in Moonlight client
+**Potential causes:**
+- PulseAudio/PipeWire not running for streaminos user
+- Sunshine audio sink misconfiguration
+- Audio device not detected in headless environment
+
+**Investigation steps:**
+1. Check audio system status:
+   ```bash
+   sudo -u streaminos pactl info
+   systemctl --user status pipewire pipewire-pulse
+   ```
+2. Verify Sunshine audio configuration:
+   ```bash
+   grep audio_sink /home/streaminos/.config/sunshine/sunshine.conf
+   ```
+3. Test audio devices available:
+   ```bash
+   sudo -u streaminos pactl list sinks
+   ```
+
+**Priority:** HIGH - Fix tomorrow (2025-11-01)
+**Documentation:** Will be added to `docs/AUDIO_CONFIGURATION.md` once resolved
+
+### 3. Game Window Focus (PLANNED)
+
+**Issue:** When launching games from Steam Big Picture, Sway doesn't auto-focus game windows
+**Workaround:** Manual focus with keyboard/controller
+**Solution:** Integrate gamescope as nested compositor (see `docs/GAMESCOPE_INTEGRATION_PLAN.md`)
+**Priority:** HIGH - Implement after audio fix
+**Target:** Version 2.0
 
 ## Configuration Files
 
@@ -376,27 +414,35 @@ sudo tar -czf /tmp/streaminos-backup.tar.gz /home/streaminos/.config /home/strea
 scp noid@192.168.0.19:/tmp/streaminos-backup.tar.gz ~/backups/
 ```
 
-## Next Steps (Future Development)
+## Next Steps (Immediate - v2.0)
+
+**Critical tasks for tomorrow (2025-11-01):**
+
+### 1. Fix Audio Streaming (Priority 1)
+- Investigate PulseAudio/PipeWire configuration
+- Configure Sunshine audio sink
+- Test audio transmission to Moonlight
+- Document solution in `docs/AUDIO_CONFIGURATION.md`
+
+### 2. Integrate Gamescope (Priority 2)
+- Install gamescope package
+- Create nested compositor launcher
+- Update Steam to run within gamescope
+- Test automatic game window focus
+- See: `docs/GAMESCOPE_INTEGRATION_PLAN.md`
+
+## Future Development (Post-v2.0)
 
 **Pending roles to implement:**
 
-1. **steam**: Steam client installation
-   - Install steam package
-   - Configure library paths
-   - Set up auto-start (optional)
-
-2. **steam-monitor**: Auto-register games with Sunshine
-   - Watch Steam library for new installations
-   - Automatically add games to Sunshine
-   - systemd service monitoring steamapps
-
-3. **amdgpu**: GPU optimizations
+1. **amdgpu**: GPU optimizations
    - Power profiles (performance mode)
    - Overclocking configuration
    - Fan curves
    - VRAM tuning
+   - Hardware VAAPI encoding (when Mesa bug fixed)
 
-4. **dashboard**: Web admin UI
+2. **dashboard**: Web admin UI
    - System monitoring (CPU, GPU, network)
    - Service management (restart Sway, Sunshine)
    - Game library management
@@ -413,7 +459,9 @@ scp noid@192.168.0.19:/tmp/streaminos-backup.tar.gz ~/backups/
 
 ---
 
-**Last Updated:** 2025-10-29  
-**Deployed By:** noid  
-**Server:** 192.168.0.19  
-**Status:** ✅ Production ready with software encoding
+**Last Updated:** 2025-10-31
+**Version:** 1.5 (Sway Architecture - Stable)
+**Next Version:** 2.0 (Sway + Gamescope + Audio)
+**Deployed By:** noid
+**Server:** 192.168.0.19
+**Status:** ✅ Video streaming operational | ⚠️ Audio + game focus pending
