@@ -105,7 +105,8 @@
 
                 ✓ Gaming components:
                   - Steam (game client and library)
-                  - Sunshine app configured: Steam Big Picture only
+                  - Steam Monitor (automatic game detection)
+                  - Sunshine apps: Steam Big Picture + detected games
 
                 ✓ Configuration locations:
                   - Sway: {{ streamin_home }}/.config/sway/config

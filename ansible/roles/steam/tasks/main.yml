@@ -40,18 +40,6 @@
       - sunshine
       - scripts
 
-- name: Copy Steam launcher wrapper
-  copy:
-      src: launch-steam.sh
-      dest: "{{ steam_home }}/.local/bin/launch-steam.sh"
-      owner: "{{ steam_user }}"
-      group: "{{ steam_user }}"
-      mode: "0755"
-  become: yes
-  tags:
-      - steam
-      - scripts
-
 - name: Check if Sunshine apps.json exists
   stat:
       path: "{{ sunshine_apps_file }}"
